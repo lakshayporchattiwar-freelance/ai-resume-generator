@@ -10,6 +10,7 @@ DROP TABLE IF EXISTS ai_generation_logs CASCADE;
 DROP TABLE IF EXISTS ats_scores CASCADE;
 DROP TABLE IF EXISTS job_descriptions CASCADE;
 DROP TABLE IF EXISTS resumes CASCADE;
+DROP TABLE IF EXISTS profiles CASCADE;
 DROP TABLE IF EXISTS sessions CASCADE;
 
 -- Profiles table (extends Supabase auth.users)
@@ -120,7 +121,7 @@ CREATE POLICY "Users can insert own resumes" ON resumes FOR INSERT WITH CHECK (a
 CREATE POLICY "Users can update own resumes" ON resumes FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete own resumes" ON resumes FOR DELETE USING (auth.uid() = user_id);
 CREATE POLICY "Users can view own job_descriptions" ON job_descriptions FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY IF EXISTS "Users can insert own job_descriptions" ON job_descriptions FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can insert own job_descriptions" ON job_descriptions FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own job_descriptions" ON job_descriptions FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Users can delete own job_descriptions" ON job_descriptions FOR DELETE USING (auth.uid() = user_id);
 CREATE POLICY "Users can view own ats_scores" ON ats_scores FOR SELECT USING (auth.uid() = user_id);
