@@ -96,5 +96,6 @@ async def health_check():
 
 
 @app.get("/ping")
+@app.head("/ping")
 async def ping():
     return "pong"
