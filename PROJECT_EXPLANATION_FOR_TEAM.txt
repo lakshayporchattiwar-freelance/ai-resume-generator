@@ -1,0 +1,626 @@
+AI Resume Generator & ATS Optimizer — Team Explanation Guide
+================================================================
+
+Think of this as: "How to explain our project to a 10-year-old (who happens to be a developer)"
+
+
+WHAT IS THIS PROJECT? (The Elevator Pitch)
+==========================================
+
+In one sentence: We built a FREE, NO-LOGIN website where anyone can create a professional resume, paste a job description, get an AI-powered "ATS score" telling them how well their resume matches that job, have AI rewrite their bullet points to sound more professional, and download a beautiful PDF or Word document — all without ever creating an account.
+
+The problem we solve: Most job seekers suck at writing resumes. They either:
+- Don't know what to write (blank page syndrome)
+- Write vague bullets like "Responsible for managing projects" instead of "Led 5-person team delivering $2M project 2 weeks early"
+- Don't know if their resume will pass the robot (ATS) that filters applications before humans see them
+- Don't tailor their resume to each job (because it's too much work)
+
+Our solution: One tool that does ALL of it — build → analyze → optimize → export.
+
+
+TECHNICAL ARCHITECTURE (The Big Picture)
+========================================
+
+                         USER'S BROWSER (Frontend)
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌───────────┐  │
+  │  │  Resume     │  │ Job Desc    │  │ ATS Score   │  │ Template  │  │
+  │  │  Builder    │  │  Input      │  │  & Analysis │  │  Preview  │  │
+  │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘  └─────┬─────┘  │
+  │         │                │                │               │        │
+  │         └────────────────┼────────────────┼───────────────┘        │
+  │                          ▼                ▼                        │
+  │                 ┌─────────────────────────────────┐               │
+  │                 │   Zustand Stores (Client State) │               │
+  │                 │  • Resume data                  │               │
+  │                 │  • Job description analysis     │               │
+  │                 │  • ATS score results            │               │
+  │                 │  • Selected template            │               │
+  │                 └──────────────┬──────────────────┘               │
+  │                                │                                  │
+  │                                ▼ REST API Calls                   │
+  └────────────────────────────────┼──────────────────────────────────┘
+                                   │
+                                   ▼
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │                        FASTAPI BACKEND (Server)                     │
+  │  ┌──────────────┐ ┌─────────────┐ ┌────────────┐ ┌──────────────┐  │
+  │  │ Resume       │ │ Job Desc    │ │ AI         │ │ Export       │  │
+  │  │ Parser       │ │ Analyzer    │ │ Orchestrator│ │ Generator   │  │
+  │  └──────┬───────┘ └──────┬──────┘ └─────┬──────┘ └──────┬───────┘  │
+  │         │                │               │               │          │
+  │         └────────────────┼───────────────┼───────────────┘          │
+  │                          ▼               ▼                          │
+  │                 ┌─────────────────────────────────┐               │
+  │                 │      Groq API (Llama 3.3 70B)   │               │
+  │                 │   • Resume structuring          │               │
+  │                 │   • Job analysis                │               │
+  │                 │   • Text rewriting              │               │
+  │                 │   • Scoring recommendations     │               │
+  │                 └─────────────────────────────────┘               │
+  └─────────────────────────────────────────────────────────────────────┘
+
+Key insight: The frontend holds ALL the data in the browser (Zustand stores). The backend is STATELESS — it just processes requests and returns results. No database needed for user data (we use Supabase only for optional analytics/rate limiting).
+
+
+FULL TECH STACK (What We Actually Used)
+=======================================
+
+FRONTEND (The Pretty Part)
+--------------------------
+| Technology       | Version   | Why We Chose It                                    |
+|------------------|-----------|----------------------------------------------------|
+| Next.js          | 15        | Modern React framework, SSR, great performance    |
+| React            | 19        | Component-based UI                                |
+| TypeScript       | 5.9       | Type safety = fewer bugs                          |
+| Tailwind CSS     | 4.3       | Utility-first styling, fast development           |
+| Zustand          | 5.0       | Tiny, simple state management (better than Redux) |
+| React Hook Form  | 7.81      | Performant forms with validation                  |
+| Zod              | 4.4       | Schema validation (matches backend Pydantic)      |
+| Lucide React     | 1.24      | Beautiful icons                                   |
+| Supabase JS      | 2.110     | Client for optional analytics                     |
+
+BACKEND (The Brains)
+--------------------
+| Technology          | Version   | Why We Chose It                                    |
+|---------------------|-----------|----------------------------------------------------|
+| FastAPI             | 0.115     | Fast, async, auto OpenAPI docs                    |
+| Python              | 3.11+     | Great AI/ML ecosystem                             |
+| Pydantic            | 2.10      | Data validation & serialization                   |
+| Groq SDK            | 0.13      | Free, fast LLM API (Llama 3.3 70B)               |
+| PyMuPDF (fitz)      | 1.25      | Best PDF text extraction                          |
+| python-docx         | 1.1       | Read/write Word docs                              |
+| ReportLab           | 4.2       | Generate PDFs programmatically                    |
+| WeasyPrint          | 63        | HTML to PDF (alternative renderer)                |
+| python-magic        | 0.4       | Real file type detection (security)               |
+| SlowAPI             | 0.1.9     | Rate limiting                                     |
+| Supabase (Python)   | 2.6       | Optional backend storage                          |
+
+AI & EXTERNAL SERVICES
+----------------------
+| Service   | Model                    | Purpose                                              |
+|-----------|--------------------------|------------------------------------------------------|
+| Groq API  | Llama 3.3 70B Versatile  | ALL AI tasks (parsing, analysis, rewriting, scoring)|
+| Supabase  | PostgreSQL               | Optional: session tracking, rate limits, analytics  |
+
+
+API ROUTES & ENDPOINTS (The Contract)
+=====================================
+
+All endpoints live under /api/v1/. Every request/response is JSON except exports (binary files).
+
+| Method | Endpoint                  | What It Does                                      | Request                                    | Response                              |
+|--------|---------------------------|---------------------------------------------------|--------------------------------------------|---------------------------------------|
+| POST   | /resume/parse             | Upload PDF/DOCX to get structured resume         | multipart/form-data (file)                 | ParsedResumeResult (resume + confidence per section) |
+| POST   | /resume/validate          | Check if resume is export-ready                  | { resume: Resume }                         | { is_export_ready, missing_fields[] } |
+| POST   | /job-description/analyze  | Extract skills/keywords from JD                  | { input: JobDescriptionInput } or file     | JobDescriptionAnalysis (required/preferred skills, keywords) |
+| POST   | /ai/generate              | Rewrite summary/bullets/achievements             | { request: AIGenerationRequest }           | AIGenerationResult (generated text + guardrail status) |
+| POST   | /analysis/score           | Compare resume vs JD to get ATS score            | { resume, job_description_analysis }       | ATSScoreResult (score, sub-scores, keywords, recommendations) |
+| POST   | /export/pdf               | Generate PDF from resume + template              | { resume, template_id }                    | Binary PDF stream (download)          |
+| POST   | /export/docx              | Generate DOCX from resume + template             | { resume, template_id }                    | Binary DOCX stream (download)         |
+
+ERROR FORMAT (always the same):
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Request validation failed",
+    "details": { "fields": ["email: invalid format"] }
+  }
+}
+
+HTTP STATUS CODES:
+- 200 = Success
+- 400 = Bad request (missing data)
+- 413 = File too big (>10MB)
+- 415 = Wrong file type (not PDF/DOCX)
+- 422 = Validation failed (bad data format)
+- 429 = Rate limited (too many requests)
+- 502 = AI service failed (Groq down)
+- 504 = AI timeout (took too long)
+- 500 = Server error (we messed up)
+
+
+TECHNICAL TERMS & FULL FORMS (The Glossary)
+===========================================
+
+| Term                    | Full Form                              | Simple Explanation                                              |
+|-------------------------|----------------------------------------|-----------------------------------------------------------------|
+| ATS                     | Applicant Tracking System              | The robot software companies use to filter resumes before humans see them |
+| LLM                     | Large Language Model                   | The AI brain (like ChatGPT) that understands and generates text |
+| Groq                    | —                                      | Company that runs LLMs super fast on special chips (LPUs)       |
+| Llama 3.3 70B           | —                                      | The specific AI model we use (70 billion parameters = smart)    |
+| Pydantic                | —                                      | Python library that validates data shapes automatically         |
+| Zod                     | —                                      | TypeScript version of Pydantic (frontend validation)            |
+| Zustand                 | German for "state"                     | Tiny state management library for React                         |
+| FastAPI                 | —                                      | Modern Python web framework (fast + auto docs)                  |
+| Next.js                 | —                                      | React framework with superpowers (SSR, routing, etc.)           |
+| Tailwind CSS            | —                                      | Write styles as class names like bg-blue-500 p-4                |
+| ReportLab               | —                                      | Python library to draw PDFs programmatically                    |
+| PyMuPDF (fitz)          | Python MuPDF                           | Best library to extract text from PDFs                          |
+| python-docx             | —                                      | Read/write Microsoft Word (.docx) files                         |
+| CORS                    | Cross-Origin Resource Sharing          | Browser security: which websites can call your API              |
+| MIME Type               | Multipurpose Internet Mail Extensions  | File format identifier (e.g., application/pdf)                  |
+| Magic Bytes             | —                                      | First few bytes of a file that reveal its TRUE type (security)  |
+| Guardrail               | —                                      | Safety rule: "AI, never invent facts the user didn't provide"   |
+| Prompt Injection        | —                                      | Attack where user hides commands in input to trick AI           |
+| HTML Escaping           | —                                      | Converting < to < so browsers don't execute it                  |
+| Zustand Store           | —                                      | Global JavaScript object holding app data (like Redux but simple)|
+| Schema                  | —                                      | Blueprint defining what data looks like (fields, types, rules)  |
+| Endpoint                | —                                      | One specific URL + HTTP method that does one thing              |
+| Stateless               | —                                      | Server remembers nothing between requests (scales easily)       |
+| Multipart/Form-Data     | —                                      | HTTP format for uploading files + form fields together          |
+| Content-Disposition     | —                                      | HTTP header telling browser "download this file as X.pdf"       |
+| Correlation ID          | —                                      | Unique ID per request to trace logs across services             |
+| Ephemeral               | —                                      | Temporary, short-lived (disappears after use)                   |
+| Idempotent              | —                                      | Calling it multiple times = same result (safe to retry)         |
+
+
+USER FLOW (Step by Step)
+========================
+
+1. LANDING PAGE
+   ├─ "Create Resume" ──────────────► 2. BUILDER (9 sections)
+   │                                   ├─ Personal Details (required)
+   │                                   ├─ Summary (+ AI rewrite)
+   │                                   ├─ Experience (+ AI rewrite bullets)
+   │                                   ├─ Education
+   │                                   ├─ Projects (+ AI rewrite)
+   │                                   ├─ Skills (tag input)
+   │                                   ├─ Certifications
+   │                                   ├─ Achievements (+ AI rephrase)
+   │                                   └─ References
+   │
+   └─ "Upload Resume" ─────────────► 3. UPLOAD SCREEN
+                                       ├─ Drag & drop PDF/DOCX
+                                       ├─ Client validation (type + size)
+                                       └─ "Upload & Parse" → 4. PARSING PROGRESS
+
+4. PARSING PROGRESS (staged messages)
+   ├─ "Reading your file..."
+   ├─ "Identifying sections..."
+   ├─ "Structuring your experience..."
+   └─ Success → 5. PARSED RESULT REVIEW (same as Builder but pre-filled)
+      └─ Shows confidence badges: ✓ High / ⚠ Needs Review / ✗ Not Found
+
+5. PARSED RESULT REVIEW → 6. JOB DESCRIPTION INPUT
+   ├─ Paste text OR upload file (PDF/DOCX/TXT)
+   ├─ Optional: Job title + company name
+   └─ "Analyze" → 7. JD ANALYSIS RESULT
+
+7. JD ANALYSIS RESULT
+   ├─ Shows: Required skills, Preferred skills, Responsibilities
+   ├─ Confidence badge: High / Medium / Low
+   └─ "Analyze My Resume Against This Job" → 8. ATS SCORE SCREEN
+
+8. ATS SCORE SCREEN
+   ├─ Big score: 0-100 (gauge)
+   ├─ Sub-scores: Keyword Coverage, Skills Alignment, Experience Relevance, Formatting
+   ├─ Recommendations (High/Medium/Low priority) → click to jump to builder section
+   ├─ "View Keyword Details" → 9. KEYWORD MATCHING SCREEN
+   └─ "Re-analyze" if resume changed
+
+9. KEYWORD MATCHING SCREEN
+   ├─ Matched keywords (green)
+   ├─ Missing REQUIRED (red) — must fix
+   ├─ Missing PREFERRED (yellow) — nice to have
+   └─ Click any missing keyword → jumps to relevant builder section
+
+10. TEMPLATE SELECTION (Modern / Classic / Compact)
+    └─ All ATS-safe (single column, no graphics)
+
+11. LIVE PREVIEW
+    ├─ Real-time render of resume in selected template
+    ├─ Zoom slider (50%-150%)
+    └─ "Export" button
+
+12. EXPORT MODAL
+    ├─ Choose PDF or DOCX
+    ├─ Client validation (name + at least one section)
+    ├─ Downloads file named "John_Doe_Resume.pdf"
+    └─ Success: offers other format or "Edit more"
+
+
+KEY COMPONENTS EXPLAINED SIMPLY
+===============================
+
+1. ZUSTAND STORES (4 of them)
+------------------------------
+Think of these as GLOBAL JAVASCRIPT VARIABLES that any component can read/write, and when they change, the UI auto-updates.
+
+| Store                      | Holds                                    | Key Methods                                                              |
+|----------------------------|------------------------------------------|--------------------------------------------------------------------------|
+| useResumeStore             | Entire resume object + dirty flag        | addExperience(), updatePersonalDetails(), loadParsedResume()            |
+| useJobDescriptionStore     | JD input + analysis result               | setInput(), setAnalysis(), reset()                                      |
+| useAnalysisStore           | ATS score + staleness flag               | setScoreResult(), markStale(), reset()                                  |
+| useTemplateStore           | Selected template ID + zoom              | setTemplate(), setZoom()                                                |
+
+2. AISUGGESTIONPANEL (The Reusable AI Widget)
+----------------------------------------------
+One component used in 4 places: Summary, Experience bullets, Project bullets, Achievements.
+
+FLOW:
+User clicks "Rewrite with AI"
+    ↓
+Shows spinner: "Thinking..."
+    ↓
+Calls /api/v1/ai/generate with:
+  - action_type: "rewrite_summary" | "rewrite_experience_bullets" | etc.
+  - source_content: current text
+  - job_description_analysis: (optional) for tailoring
+    ↓
+Backend returns generated text + guardrail_validated: true/false
+    ↓
+Panel shows: ORIGINAL vs AI SUGGESTION side by side
+    ↓
+User chooses: [Accept] [Edit] [Discard]
+    ↓
+If Accept: updates Zustand store → live preview updates instantly
+
+3. TRUTHFULNESS GUARDRAIL (Our Secret Sauce)
+---------------------------------------------
+RULE: AI must NEVER invent facts. Only rephrase what user already wrote.
+
+HOW IT WORKS:
+1. System prompt: "You are a resume editor. NEVER add skills, employers, dates, numbers not in source."
+2. User content wrapped in delimiters: --- BEGIN RESUME --- ... --- END RESUME ---
+3. After AI generates, backend compares:
+   - Original entities (company names, skills, dates, numbers)
+   - Generated entities
+4. If new entities appear → REJECT → retry with stricter prompt (max 2 retries)
+5. If still fails → return error to user: "Couldn't generate safely, please edit manually"
+
+
+SECURITY FEATURES (What We Did Right)
+=====================================
+
+| Threat                    | Our Defense                                                            |
+|---------------------------|------------------------------------------------------------------------|
+| Fake file uploads         | Check magic bytes (not extension), reject non-PDF/DOCX                |
+| Huge files                | 10MB limit client + server                                            |
+| Path traversal            | Random temp filenames (uuid.hex[:8]), never user filename             |
+| Prompt injection          | Delimited boundaries, system prompt priority, post-generation validation|
+| XSS                       | React auto-escapes everything, no dangerouslySetInnerHTML             |
+| PDF XSS                   | HTML-escape all fields before ReportLab rendering                     |
+| CORS                      | Allow-list only (BACKEND_CORS_ORIGINS), no wildcard                   |
+| Secrets leakage           | GROQ_API_KEY backend-only, never NEXT_PUBLIC_                         |
+| Sensitive logs            | Structured JSON logs, NO resume/JD content, only metadata             |
+| Rate limiting             | Per hashed IP, 10 req/min on AI endpoints                             |
+| Temp file cleanup         | Immediate + scheduled backstop (5 min max)                            |
+| SQL injection             | No user data in DB, parameterized queries for rate limits only        |
+
+
+DATA SCHEMA (The Shape of Everything)
+=====================================
+
+RESUME (Root Object)
+--------------------
+Resume
+├── personal_details (REQUIRED)
+│   ├── full_name (max 120) ← REQUIRED for export
+│   ├── professional_title (max 150)
+│   ├── email (valid format)
+│   ├── phone (max 30)
+│   ├── location (max 150)
+│   └── links[] { label, url }
+├── professional_summary (max 800 chars)
+├── experience[] (ordered)
+│   ├── id (UUID)
+│   ├── company_name (max 150, required)
+│   ├── job_title (max 150, required)
+│   ├── start_date (required, YYYY-MM)
+│   ├── end_date (required, YYYY-MM or "present")
+│   ├── description_bullets[] (each max 400)
+│   └── order_index
+├── education[] (similar structure)
+├── projects[] (similar structure)
+├── skills[] (SkillGroup: category + skills[])
+├── certifications[]
+├── achievements[] (statement, max 300)
+├── references (either array OR "available_upon_request")
+└── meta { source: "created"|"uploaded", created_at, updated_at }
+
+JOB DESCRIPTION ANALYSIS
+------------------------
+JobDescriptionAnalysis
+├── required_skills[] (must-have)
+├── preferred_skills[] (nice-to-have)
+├── responsibilities[]
+├── keywords[] { term, importance: "required"|"preferred", source_context }
+└── analysis_confidence: "high"|"medium"|"low"
+
+ATS SCORE RESULT
+----------------
+ATSScoreResult
+├── overall_score (0-100)
+├── sub_scores
+│   ├── keyword_coverage (deterministic: % of JD keywords in resume)
+│   ├── skills_alignment (AI judgment)
+│   ├── experience_relevance (AI judgment)
+│   └── formatting_compatibility (deterministic: sections complete, no tables)
+├── matched_keywords[]
+├── missing_required_keywords[]
+├── missing_preferred_keywords[]
+├── recommendations[] { priority, message, related_section }
+├── computed_at (timestamp)
+└── resume_snapshot_hash (detects if resume changed after scoring)
+
+
+TEMPLATES (3 Styles, All ATS-Safe)
+===================================
+
+| Template  | Vibe                                      | Best For                      |
+|-----------|-------------------------------------------|-------------------------------|
+| Modern    | Clean, slightly larger headers, accent    | Tech, creative, general       |
+| Classic   | Traditional, serif-friendly, conservative | Finance, law, government      |
+| Compact   | Dense, small margins, max content/page    | Senior roles, 2+ pages        |
+
+ALL TEMPLATES:
+- Single column (ATS parsers hate columns)
+- No images, graphics, text boxes
+- Standard fonts (system fonts = no embedding issues)
+- Structured headings (h1, h2, h3) for parser readability
+
+
+HOW TO RUN (For Your Team)
+==========================
+
+BACKEND:
+cd backend
+pip install -r requirements.txt
+# Create .env with:
+# GROQ_API_KEY=your_key
+# SUPABASE_URL=your_url
+# SUPABASE_KEY=your_key
+uvicorn app.main:app --reload
+# → http://127.0.0.1:8000
+# → API docs: http://127.0.0.1:8000/docs
+
+FRONTEND:
+cd frontend
+npm install
+# .env.local already has: NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+npm run dev
+# → http://localhost:3000
+
+SUPABASE SETUP (Optional but Recommended):
+1. Create project at supabase.com
+2. Run backend/supabase_schema.sql in SQL Editor
+3. Add URL + anon key to both .env files
+
+
+PROJECT STRUCTURE (Where Everything Lives)
+==========================================
+
+college project/
+├── 01_PRD_AI_Resume_Generator.md          # Product requirements (WHAT)
+├── 02_TRD_AI_Resume_Generator.md          # Technical requirements (HOW)
+├── 03_Application_Flow_AI_Resume_Generator.md  # Screen-by-screen behavior
+├── 04_Data_Schema_AI_Resume_Generator.md  # Every field, type, constraint
+├── 05_Security_AI_Resume_Generator.md     # All security controls
+├── AGENTS.md                              # This context for AI agents
+│
+├── backend/
+│   ├── app/
+│   │   ├── main.py                        # FastAPI app, CORS, errors
+│   │   ├── api/v1/                        # 5 route files (resume, jd, analysis, ai, export)
+│   │   ├── services/                      # 5 business logic services
+│   │   ├── integrations/                  # 6 external wrappers (Groq, PDF, DOCX, Supabase)
+│   │   ├── prompts/                       # 4 versioned prompt templates
+│   │   ├── models/                        # 5 Pydantic model files (schema)
+│   │   ├── core/                          # Config, logging, exceptions
+│   │   └── utils/                         # File validation
+│   ├── supabase_schema.sql                # Database tables
+│   └── requirements.txt                   # Python deps
+│
+└── frontend/
+    ├── app/                               # Next.js App Router pages
+    │   ├── page.tsx                       # Landing
+    │   ├── build/page.tsx                 # Resume builder (9 sections)
+    │   ├── upload/page.tsx                # File upload
+    │   ├── job-description/page.tsx       # JD input
+    │   ├── analysis/page.tsx              # ATS score + keywords
+    │   └── preview/page.tsx               # Template + live preview + export
+    ├── features/                          # Feature modules
+    │   ├── resume-builder/
+    │   ├── resume-upload/
+    │   ├── job-description/
+    │   ├── ai-analysis/                   # AISuggestionPanel lives here
+    │   ├── template-preview/
+    │   └── export/
+    ├── components/ui/                     # 7 primitive components
+    ├── stores/                            # 4 Zustand stores
+    ├── lib/                               # API client, Supabase, Zod schemas, utils
+    ├── types/                             # TypeScript interfaces (mirror Pydantic)
+    └── package.json
+
+
+WHAT'S DONE (Complete Features)
+===============================
+
+[x] Landing page with hero, features, 4-step guide
+[x] Resume builder — 9 sections, sidebar nav, auto-save, completion badges
+[x] Resume upload — drag/drop, client validation, staged parsing progress
+[x] AI parsing — PDF/DOCX to structured resume with confidence per section
+[x] Job description input — paste + upload, analysis with skills/keywords
+[x] ATS scoring — deterministic keyword match + AI qualitative scoring
+[x] Keyword matching — matched/missing required/missing preferred with click-through
+[x] AI rewriting — Summary, Experience bullets, Project bullets, Achievements
+[x] AISuggestionPanel — Accept/Edit/Discard pattern, guardrail warnings
+[x] 3 Templates — Modern/Classic/Compact, all ATS-safe
+[x] Live preview — Real-time, zoomable, template-aware
+[x] PDF Export — ReportLab, HTML escaping, professional formatting
+[x] DOCX Export — python-docx, structured paragraphs, editable
+[x] Supabase integration — Schema ready, client configured
+[x] Security — MIME validation, temp cleanup, guardrails, CORS, rate limiting
+[x] Build passes — Frontend npm run build OK, Backend starts OK
+
+
+WHAT'S NOT DONE (Known Gaps)
+============================
+
+| Item                          | Status                              | Effort  |
+|-------------------------------|-------------------------------------|---------|
+| Automated tests               | backend/tests/ empty                | Medium  |
+| Rate limiting wired           | SlowAPI imported but not on routes  | Low     |
+| Supabase persistence          | Service exists, not called from routes | Medium |
+| Scheduled temp cleanup        | Function exists, not scheduled      | Low     |
+| File storage in Supabase      | Parsed + discarded, not stored      | Medium  |
+| Mobile responsiveness         | Works but not extensively tested    | Medium  |
+| Error boundary                | No React error boundary component   | Low     |
+| CSS variables                 | Some hardcoded Tailwind colors      | Low     |
+
+
+THINGS YOU MIGHT HAVE MISSED (But Should Know)
+==============================================
+
+1. NO DATABASE FOR USER DATA (BY DESIGN)
+   We don't store resumes/JDs in Supabase. All data lives in BROWSER MEMORY (Zustand).
+   User closes tab = data gone. This is a FEATURE for privacy/no-login.
+
+2. TWO WAYS TO CREATE A RESUME
+   - From scratch: User fills 9-section form manually
+   - Upload + Parse: User uploads PDF/DOCX → AI structures it → user reviews/fixes → continues
+   Both converge to the SAME builder interface.
+
+3. AI ACTIONS ARE SECTION-SPECIFIC
+   - Summary: "Generate" (empty) or "Rewrite" (has content)
+   - Experience: "Rewrite bullets" per entry
+   - Projects: "Rewrite bullets" per entry
+   - Achievements: "Rephrase with measurable phrasing"
+   Each calls /ai/generate with different action_type.
+
+4. STALENESS TRACKING
+   If user edits resume AFTER getting ATS score, useAnalysisStore marks score as STALE.
+   UI shows "Score may be outdated — re-analyze" banner. Prevents false confidence.
+
+5. EXPORT VALIDATION HAPPENS TWICE
+   1. Client-side (instant): Checks name + at least one section
+   2. Server-side (defensive): Backend re-validates before generating file
+
+6. PROMPT TEMPLATES ARE VERSIONED FILES
+   Not inline strings. In backend/app/prompts/:
+   - resume_structuring_prompt.py — for parsing uploaded resumes
+   - job_description_prompt.py — for JD analysis
+   - generation_prompts.py — 5 templates for rewriting
+   - scoring_prompt.py — for AI qualitative scoring
+   Easy to A/B test, version, and audit.
+
+7. DETERMINISTIC + HYBRID SCORING
+   - Keyword coverage = pure math (count matches / total JD keywords) — reproducible
+   - Formatting compatibility = pure math (sections present, no tables) — reproducible
+   - Skills alignment = AI judgment — nuanced
+   - Experience relevance = AI judgment — nuanced
+   This makes scores EXPLAINABLE and PARTIALLY REPRODUCIBLE.
+
+8. FILE NAMING CONVENTION
+   Exports download as: {full_name}_Resume.pdf (sanitized). If no name: Resume.pdf.
+
+9. ENVIRONMENT VARIABLES ARE SPLIT
+   | Prefix          | Where       | Example                    |
+   |-----------------|-------------|----------------------------|
+   | GROQ_API_KEY    | Backend only| Secret, never in frontend  |
+   | NEXT_PUBLIC_*   | Frontend    | Safe to bundle in JS       |
+   | SUPABASE_*      | Both        | Different keys per env     |
+
+10. CORRELATION IDs FOR DEBUGGING
+    Every API request gets a X-Correlation-ID header. Logs include it.
+    Trace a user's journey across parsing → analysis → scoring → export in logs.
+
+
+HOW TO EXPLAIN THIS TO NON-TECHNICAL STAKEHOLDERS
+==================================================
+
+THE "GRANDMA TEST" EXPLANATION:
+
+"Imagine you're applying for jobs. You have a resume, but you're not sure if it's good. You find a job you like. Our tool lets you:
+1. BUILD or UPLOAD your resume (we read your PDF/Word file automatically)
+2. PASTE the job description
+3. GET A SCORE (like a credit score but for your resume) telling you exactly what's missing
+4. CLICK A BUTTON and AI rewrites your bullet points to sound professional — but it NEVER lies or makes up experience you don't have
+5. PICK A TEMPLATE and see exactly what it'll look like
+6. DOWNLOAD a perfect PDF or Word doc
+
+No account needed. Free. Takes 5 minutes. Your data stays in your browser — we never save it."
+
+
+QUICK REFERENCE LINKS
+=====================
+
+| What                        | Where                                               |
+|-----------------------------|-----------------------------------------------------|
+| API Docs (Swagger)          | http://localhost:8000/docs (when backend running)  |
+| Frontend                    | http://localhost:3000 (when frontend running)      |
+| PRD (Business Rules)        | 01_PRD_AI_Resume_Generator.md                      |
+| TRD (Architecture)          | 02_TRD_AI_Resume_Generator.md                      |
+| App Flow (Screens)          | 03_Application_Flow_AI_Resume_Generator.md         |
+| Data Schema (Fields)        | 04_Data_Schema_AI_Resume_Generator.md              |
+| Security (Controls)         | 05_Security_AI_Resume_Generator.md                 |
+| Backend Entry               | backend/app/main.py                                 |
+| Frontend Entry              | frontend/app/page.tsx                               |
+| Resume Store                | frontend/stores/useResumeStore.ts                   |
+| AI Panel Component          | frontend/features/ai-analysis/components/AISuggestionPanel.tsx |
+
+
+HOW TO CONTRIBUTE / EXTEND
+==========================
+
+ADDING A NEW AI ACTION (e.g., "Rewrite Education"):
+1. Add action_type enum in backend/app/models/analysis.py
+2. Add prompt template in backend/app/prompts/generation_prompts.py
+3. Handle in AIOrchestrationService.generate()
+4. Add Zod schema in frontend/lib/schemas/analysis.ts
+5. Use AISuggestionPanel in Education section with new actionType
+
+ADDING A NEW TEMPLATE:
+1. Add template ID in useTemplateStore default options
+2. Create render logic in pdf_generator.py and docx_generator.py
+3. Add preview component in template-preview feature
+4. Update template selector UI
+
+ADDING A NEW EXPORT FORMAT (e.g., HTML):
+1. Add /export/html route in backend/app/api/v1/export.py
+2. Add generator in backend/app/integrations/html_generator.py
+3. Add export button in frontend Export modal
+4. Call new API endpoint from useExport hook
+
+
+FINAL NOTES FOR YOUR TEAM
+=========================
+
+1. READ THE 5 SPEC DOCS FIRST — they're the source of truth
+2. BACKEND PYDANTIC = FRONTEND ZOD — keep them in sync
+3. NEVER SKIP GUARDRAIL VALIDATION — it's our core differentiator
+4. TEST WITH REAL PDFs — parsing is the flakiest part
+5. MONITOR GROQ API USAGE — it's free but has limits
+6. DEPLOY FRONTEND + BACKEND SEPARATELY — they scale differently
+7. USE CORRELATION IDs when debugging production issues
+
+
+Document Version: 1.0
+Created For: College Project Team
+Author: The Solo Developer Who Built This
+Last Updated: July 2026
+
+This document is your cheat sheet. When someone asks "How does X work?", point them here.
+When you need to add a feature, check the patterns here first.
+When presenting to professors, use the "Grandma Test" section.
