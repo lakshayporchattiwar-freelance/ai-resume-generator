@@ -2,15 +2,11 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const PROTECTED_PATHS = ["/build", "/upload", "/job-description", "/analysis", "/preview", "/dashboard"];
-const PUBLIC_PATHS = ["/", "/login", "/auth/callback"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isProtected = PROTECTED_PATHS.some((p) => pathname.startsWith(p));
-  if (!isProtected) {
-    return NextResponse.next();
-  }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
@@ -41,11 +37,15 @@ export async function middleware(request: NextRequest) {
     data: { session },
   } = await supabase.auth.getSession();
 
-  if (!session) {
+  if (isProtected && !session) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(redirectUrl);
+  }
+
+  if (session && pathname === "/login") {
+    return NextResponse.redirect(new URL("/build", request.url));
   }
 
   return response;
