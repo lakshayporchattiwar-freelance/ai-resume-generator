@@ -10,28 +10,31 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     async function handleCallback() {
       try {
-        const url = new URL(window.location.href);
-        const code = url.searchParams.get("code");
+        const { data: { session }, error } = await supabase.auth.getSession();
 
-        if (code) {
-          const { error } = await supabase.auth.exchangeCodeForSession(
-            window.location.href
-          );
-          if (error) {
-            console.error("Code exchange error:", error.message);
-            router.replace("/login?error=auth_failed");
-            return;
-          }
-        } else {
-          const { data: { session }, error } = await supabase.auth.getSession();
-          if (error || !session) {
-            console.error("Session error:", error?.message);
-            router.replace("/login?error=auth_failed");
-            return;
-          }
+        if (error) {
+          console.error("Session error:", error.message);
+          router.replace("/login?error=auth_failed");
+          return;
         }
 
-        router.replace("/build");
+        if (session) {
+          router.replace("/build");
+        } else {
+          const hash = window.location.hash;
+          if (hash && hash.includes("access_token")) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            const { data: { session: retrySession }, error: retryError } = await supabase.auth.getSession();
+            if (retrySession) {
+              router.replace("/build");
+            } else {
+              console.error("Retry session error:", retryError?.message);
+              router.replace("/login?error=auth_failed");
+            }
+          } else {
+            router.replace("/login?error=no_session");
+          }
+        }
       } catch (err) {
         console.error("Callback exception:", err);
         router.replace("/login?error=auth_failed");

@@ -10,6 +10,7 @@ import { useResumeStore } from "@/stores/useResumeStore";
 import { useTemplateStore } from "@/stores/useTemplateStore";
 import { useAnalysisStore } from "@/stores/useAnalysisStore";
 import { useAuth } from "@/lib/auth";
+import { RequireAuth } from "@/components/auth/RequireAuth";
 import { apiClient } from "@/lib/api-client";
 import { isExportReady, downloadBlob, formatDate } from "@/lib/utils/helpers";
 import Link from "next/link";
@@ -143,7 +144,7 @@ export default function PreviewPage() {
   }
 
   return (
-    <>
+    <RequireAuth>
       <header className="w-full border-b border-neutral-200 bg-neutral-0">
         <div className="content-container flex h-14 items-center justify-between">
           <Link href="/" className="typography-heading-md text-neutral-900">ResumeForge</Link>
@@ -275,6 +276,6 @@ export default function PreviewPage() {
           </p>
         </div>
       </Modal>
-    </>
+    </RequireAuth>
   );
 }

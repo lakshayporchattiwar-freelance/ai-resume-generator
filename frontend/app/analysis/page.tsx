@@ -10,6 +10,7 @@ import { useAnalysisStore } from "@/stores/useAnalysisStore";
 import { useResumeStore } from "@/stores/useResumeStore";
 import { useJobDescriptionStore } from "@/stores/useJobDescriptionStore";
 import { useAuth } from "@/lib/auth";
+import { RequireAuth } from "@/components/auth/RequireAuth";
 import { apiClient } from "@/lib/api-client";
 import { getScoreColor, getScoreBgTint } from "@/lib/utils/helpers";
 import Link from "next/link";
@@ -141,7 +142,7 @@ export default function AnalysisPage() {
   const hasJd = jdAnalysis !== null;
 
   return (
-    <>
+    <RequireAuth>
       <header className="w-full border-b border-neutral-200 bg-neutral-0">
         <div className="content-container flex h-14 items-center justify-between">
           <Link href="/" className="typography-heading-md text-neutral-900">ResumeForge</Link>
@@ -258,6 +259,6 @@ export default function AnalysisPage() {
           )}
         </div>
       </main>
-    </>
+    </RequireAuth>
   );
 }

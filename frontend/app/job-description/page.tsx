@@ -9,6 +9,7 @@ import { TextArea } from "@/components/ui/TextArea";
 import { Badge } from "@/components/ui/Badge";
 import { useJobDescriptionStore } from "@/stores/useJobDescriptionStore";
 import { useAuth } from "@/lib/auth";
+import { RequireAuth } from "@/components/auth/RequireAuth";
 import { apiClient } from "@/lib/api-client";
 import Link from "next/link";
 
@@ -61,7 +62,7 @@ export default function JobDescriptionPage() {
   }
 
   return (
-    <>
+    <RequireAuth>
       <header className="w-full border-b border-neutral-200 bg-neutral-0">
         <div className="content-container flex h-14 items-center justify-between">
           <Link href="/" className="typography-heading-md text-neutral-900">ResumeForge</Link>
@@ -183,6 +184,6 @@ export default function JobDescriptionPage() {
           </div>
         </div>
       </main>
-    </>
+    </RequireAuth>
   );
 }

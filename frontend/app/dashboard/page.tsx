@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { useAuth } from "@/lib/auth";
+import { RequireAuth } from "@/components/auth/RequireAuth";
 import { useResumeStore } from "@/stores/useResumeStore";
 import { loadResumesFromSupabase, deleteResumeFromSupabase } from "@/lib/supabase/data";
 import { formatDate } from "@/lib/utils/helpers";
@@ -48,7 +49,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <>
+    <RequireAuth>
       <header className="w-full border-b border-neutral-200 bg-neutral-0">
         <div className="content-container flex h-14 items-center justify-between">
           <Link href="/" className="typography-heading-md text-neutral-900">ResumeForge</Link>
@@ -153,6 +154,6 @@ export default function DashboardPage() {
           )}
         </div>
       </main>
-    </>
+    </RequireAuth>
   );
 }
