@@ -93,6 +93,7 @@ export default function UploadPage() {
         <div className="content-container flex h-14 items-center justify-between">
           <Link href="/" className="typography-heading-md text-neutral-900">ResumeForge</Link>
           <nav className="flex items-center gap-6">
+            <Link href="/dashboard" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">Dashboard</Link>
             <Link href="/build" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">Build</Link>
             <Link href="/job-description" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">Job Description</Link>
             <div className="flex items-center gap-3 pl-4 border-l border-neutral-200">

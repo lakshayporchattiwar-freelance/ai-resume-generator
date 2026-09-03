@@ -19,6 +19,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackError = searchParams.get("error");
+  const redirectTo = searchParams.get("redirect") || "/dashboard";
 
   async function handleEmailAuth(e: React.FormEvent) {
     e.preventDefault();
@@ -39,7 +40,7 @@ function LoginForm() {
         if (result.error) {
           setError(result.error);
         } else {
-          router.push("/build");
+          router.push(redirectTo);
         }
       } else {
         const result = await signUpWithEmail(email, password);
@@ -135,7 +136,7 @@ function LoginForm() {
             {(error || callbackError) && (
               <div className="flex items-center gap-2 text-error-600 bg-error-50 rounded-lg px-3 py-2">
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                <p className="typography-body-md">{error || (callbackError === "auth_callback_failed" ? "Authentication failed. Please try again." : callbackError)}</p>
+                <p className="typography-body-md">{error || (callbackError === "auth_failed" ? "Authentication failed. Please try again." : callbackError === "no_code" ? "OAuth code missing. Please try again." : callbackError?.startsWith("oauth_") ? `OAuth error: ${callbackError.replace("oauth_", "")}` : "Authentication failed. Please try again.")}</p>
               </div>
             )}
 

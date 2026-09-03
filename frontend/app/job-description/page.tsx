@@ -67,6 +67,7 @@ export default function JobDescriptionPage() {
         <div className="content-container flex h-14 items-center justify-between">
           <Link href="/" className="typography-heading-md text-neutral-900">ResumeForge</Link>
           <nav className="flex items-center gap-6">
+            <Link href="/dashboard" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">Dashboard</Link>
             <Link href="/build" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">Build</Link>
             <Link href="/analysis" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">Analysis</Link>
             <Link href="/preview" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">Preview</Link>

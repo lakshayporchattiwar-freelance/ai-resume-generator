@@ -44,6 +44,9 @@ export default function LandingPage() {
           <nav className="flex items-center gap-6">
             {user ? (
               <>
+                <Link href="/dashboard" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">
+                  Dashboard
+                </Link>
                 <Link href="/build" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">
                   Build
                 </Link>
@@ -84,9 +87,9 @@ export default function LandingPage() {
               Create, optimize, and tailor your resume for any job description. Get an ATS compatibility score and export professional documents.
             </p>
             <div className="flex items-center gap-4">
-              <Link href={user ? "/build" : "/login"}>
+              <Link href={user ? "/dashboard" : "/login"}>
                 <Button size="lg" className="group">
-                  Create Resume
+                  {user ? "Go to Dashboard" : "Create Resume"}
                   <ArrowRight className="h-4 w-4 transition-transform duration-150 group-hover:translate-x-0.5" />
                 </Button>
               </Link>
@@ -144,6 +147,9 @@ export default function LandingPage() {
           <div className="flex items-center justify-between">
             <span className="typography-body-md text-neutral-500">ResumeForge</span>
             <div className="flex items-center gap-6">
+              <Link href={user ? "/dashboard" : "/login"} className="typography-body-md text-neutral-500 hover:text-neutral-700 transition-colors duration-150">
+                Dashboard
+              </Link>
               <Link href={user ? "/build" : "/login"} className="typography-body-md text-neutral-500 hover:text-neutral-700 transition-colors duration-150">
                 Build
               </Link>

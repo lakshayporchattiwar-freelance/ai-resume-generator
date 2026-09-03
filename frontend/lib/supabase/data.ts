@@ -1,7 +1,6 @@
 "use client";
 
 import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/lib/auth";
 import type { Resume } from "@/types/resume";
 import type { JobDescriptionAnalysis } from "@/types/job_description";
 import type { ATSScoreResult } from "@/types/analysis";
