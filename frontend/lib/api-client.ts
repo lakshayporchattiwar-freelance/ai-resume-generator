@@ -99,7 +99,7 @@ class ApiClient {
 
   async aiGenerate(request: import("@/types/analysis").AIGenerationRequest) {
     return this.request<import("@/types/analysis").AIGenerationResult>("/api/v1/ai/generate", {
-      body: { request },
+      body: request,
     });
   }
 
