@@ -9,7 +9,7 @@ node_modules/
 .vercel/
 *.egg-info/
 dist/
-build/
+/build/
 .pytest_cache/
 .mypy_cache/
 .DS_Store
