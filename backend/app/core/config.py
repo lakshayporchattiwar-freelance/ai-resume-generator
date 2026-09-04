@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
-    GROQ_MODEL_NAME: str = "llama-3.3-70b-versatile"
+    GROQ_MODEL_NAME: str = "groq/compound-mini"
     BACKEND_CORS_ORIGINS: str = "http://localhost:3000"
     MAX_UPLOAD_SIZE_MB: int = 10
     AI_REQUEST_TIMEOUT_SECONDS: int = 60

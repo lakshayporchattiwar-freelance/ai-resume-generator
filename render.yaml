@@ -10,7 +10,7 @@ services:
       - key: GROQ_API_KEY
         sync: false
       - key: GROQ_MODEL_NAME
-        value: llama-3.3-70b-versatile
+        value: groq/compound-mini
       - key: BACKEND_CORS_ORIGINS
         value: "http://localhost:3000,https://ai-resume-generator-iota-gules.vercel.app"
       - key: SUPABASE_URL
