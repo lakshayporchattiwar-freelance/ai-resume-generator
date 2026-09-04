@@ -14,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 class GroqClient:
+    FALLBACK_MODEL = "groq/compound-mini"
+
     def __init__(self):
         self._client: Optional[Groq] = None
 
@@ -32,12 +34,33 @@ class GroqClient:
         max_tokens: int = 4096,
     ) -> str:
         try:
+            return await self._do_completion(
+                system_prompt, user_prompt, response_format, temperature, max_tokens, settings.GROQ_MODEL_NAME
+            )
+        except AIProviderError as e:
+            if "404" in str(e) and settings.GROQ_MODEL_NAME != self.FALLBACK_MODEL:
+                logger.warning("groq_model_not_found_fallback", extra={"detail": f"Model {settings.GROQ_MODEL_NAME} not found, trying fallback"})
+                return await self._do_completion(
+                    system_prompt, user_prompt, response_format, temperature, max_tokens, self.FALLBACK_MODEL
+                )
+            raise
+
+    async def _do_completion(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        response_format: Optional[Dict[str, Any]],
+        temperature: float,
+        max_tokens: int,
+        model: str,
+    ) -> str:
+        try:
             messages = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ]
             kwargs: Dict[str, Any] = {
-                "model": settings.GROQ_MODEL_NAME,
+                "model": model,
                 "messages": messages,
                 "temperature": temperature,
                 "max_tokens": max_tokens,
