@@ -41,23 +41,23 @@ export default function LandingPage() {
           <Link href="/" className="flex items-center gap-2 text-neutral-900">
             <span className="typography-heading-md">ResumeForge</span>
           </Link>
-          <nav className="flex items-center gap-6">
+          <nav className="flex items-center gap-4 sm:gap-6">
             {user ? (
               <>
-                <Link href="/dashboard" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">
+                <Link href="/dashboard" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150 hidden sm:inline">
                   Dashboard
                 </Link>
-                <Link href="/build" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">
+                <Link href="/build" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150 hidden sm:inline">
                   Build
                 </Link>
-                <Link href="/upload" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">
+                <Link href="/upload" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150 hidden sm:inline">
                   Upload
                 </Link>
-                <Link href="/preview" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">
+                <Link href="/preview" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150 hidden sm:inline">
                   Preview
                 </Link>
                 <div className="flex items-center gap-3 pl-4 border-l border-neutral-200">
-                  <span className="typography-label text-neutral-600">{displayName}</span>
+                  <span className="typography-label text-neutral-600 hidden sm:inline">{displayName}</span>
                   <Button variant="ghost" size="sm" onClick={signOut}>
                     <LogOut className="h-4 w-4" />
                   </Button>
@@ -78,7 +78,7 @@ export default function LandingPage() {
       </header>
 
       <main>
-        <section className="content-container pt-24 pb-24">
+        <section className="content-container pt-12 pb-12 sm:pt-24 sm:pb-24">
           <div className="max-w-2xl">
             <h1 className="typography-display text-neutral-900 mb-6">
               Build resumes that pass the screen, <span className="text-accent-600">powered by AI</span>
@@ -86,15 +86,15 @@ export default function LandingPage() {
             <p className="typography-body-lg text-neutral-500 mb-10 max-w-lg">
               Create, optimize, and tailor your resume for any job description. Get an ATS compatibility score and export professional documents.
             </p>
-            <div className="flex items-center gap-4">
-              <Link href={user ? "/dashboard" : "/login"}>
-                <Button size="lg" className="group">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <Link href={user ? "/dashboard" : "/login"} className="w-full sm:w-auto">
+                <Button size="lg" className="group w-full sm:w-auto">
                   {user ? "Go to Dashboard" : "Create Resume"}
                   <ArrowRight className="h-4 w-4 transition-transform duration-150 group-hover:translate-x-0.5" />
                 </Button>
               </Link>
-              <Link href={user ? "/upload" : "/login"}>
-                <Button variant="secondary" size="lg">
+              <Link href={user ? "/upload" : "/login"} className="w-full sm:w-auto">
+                <Button variant="secondary" size="lg" className="w-full sm:w-auto">
                   <Upload className="h-4 w-4" />
                   Upload Existing
                 </Button>
@@ -104,7 +104,7 @@ export default function LandingPage() {
         </section>
 
         <section className="bg-neutral-50 border-t border-neutral-200">
-          <div className="content-container py-24">
+          <div className="content-container py-12 sm:py-24">
             <h2 className="typography-heading-xl text-neutral-900 mb-12">
               Precision tools for professionals
             </h2>
@@ -122,9 +122,9 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="content-container py-24">
-          <h2 className="typography-heading-xl text-neutral-900 mb-12">How it works</h2>
-          <div className="flex items-start gap-12">
+        <section className="content-container py-12 sm:py-24">
+          <h2 className="typography-heading-xl text-neutral-900 mb-8 sm:mb-12">How it works</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             {STEPS.map((step, i) => (
               <div key={step.numeral} className="flex items-start gap-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-100">
@@ -133,9 +133,6 @@ export default function LandingPage() {
                 <div>
                   <p className="typography-body-lg text-neutral-700">{step.label}</p>
                 </div>
-                {i < STEPS.length - 1 && (
-                  <ArrowRight className="h-4 w-4 text-neutral-400 mt-3 shrink-0 hidden md:block" />
-                )}
               </div>
             ))}
           </div>
@@ -143,10 +140,10 @@ export default function LandingPage() {
       </main>
 
       <footer className="border-t border-neutral-200 bg-neutral-50">
-        <div className="content-container py-12">
-          <div className="flex items-center justify-between">
+        <div className="content-container py-8 sm:py-12">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <span className="typography-body-md text-neutral-500">ResumeForge</span>
-            <div className="flex items-center gap-6">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6">
               <Link href={user ? "/dashboard" : "/login"} className="typography-body-md text-neutral-500 hover:text-neutral-700 transition-colors duration-150">
                 Dashboard
               </Link>

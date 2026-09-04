@@ -146,7 +146,7 @@ function AISuggestionPanel({
           )
         )}
 
-        <div className="flex items-center gap-3 mt-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4">
           <Button size="sm" onClick={handleAccept}>
             <Check className="h-3.5 w-3.5" />
             Accept

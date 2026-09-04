@@ -3,21 +3,20 @@
 import { useState } from "react";
 import { useResumeStore } from "@/stores/useResumeStore";
 import { useAnalysisStore } from "@/stores/useAnalysisStore";
-import { useAuth } from "@/lib/auth";
 import { TextInput } from "@/components/ui/TextInput";
 import { TextArea } from "@/components/ui/TextArea";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { RequireAuth } from "@/components/auth/RequireAuth";
+import { Header } from "@/components/layout/Header";
 import { AISuggestionPanel } from "@/features/ai-analysis/components/AISuggestionPanel";
 import { formatDate } from "@/lib/utils/helpers";
 import {
   User, FileText, Briefcase, GraduationCap, FolderKanban,
   Wrench, Award, Trophy, UsersRound, Plus, Trash2, ChevronDown, ChevronUp, X,
-  Link as LinkIcon, LogOut,
+  Link as LinkIcon,
 } from "lucide-react";
-import Link from "next/link";
 
 const SECTIONS = [
   { id: "personal_details", label: "Personal Details", icon: User, required: true },
@@ -667,9 +666,7 @@ const SECTION_COMPONENTS: Record<SectionId, React.ComponentType> = {
 export default function BuildPage() {
   const [activeSection, setActiveSection] = useState<SectionId>("personal_details");
   const resume = useResumeStore((s) => s.resume);
-  const { user, signOut } = useAuth();
   const ActiveComponent = SECTION_COMPONENTS[activeSection];
-  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
 
   function getSectionStatus(id: SectionId): "complete" | "required" | "optional" {
     if (id === "personal_details") {
@@ -685,39 +682,13 @@ export default function BuildPage() {
 
   return (
     <RequireAuth>
-      <header className="w-full border-b border-neutral-200 bg-neutral-0">
-        <div className="content-container flex h-14 items-center justify-between">
-          <Link href="/" className="typography-heading-md text-neutral-900">
-            ResumeForge
-          </Link>
-          <nav className="flex items-center gap-6">
-            <Link href="/dashboard" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">
-              Dashboard
-            </Link>
-            <Link href="/job-description" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">
-              Job Description
-            </Link>
-            <Link href="/analysis" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">
-              Analysis
-            </Link>
-            <Link href="/preview" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">
-              Preview
-            </Link>
-            <div className="flex items-center gap-3 pl-4 border-l border-neutral-200">
-              <span className="typography-label text-neutral-600">{displayName}</span>
-              <Button variant="ghost" size="sm" onClick={signOut}>
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
-      <div className="flex flex-1">
-        <aside className="w-64 shrink-0 border-r border-neutral-200 bg-neutral-50 overflow-y-auto">
+      <div className="flex flex-col md:flex-row flex-1">
+        <aside className="md:w-64 md:shrink-0 md:border-r border-b md:border-b-0 border-neutral-200 bg-neutral-50 overflow-y-auto">
           <div className="p-3">
             <p className="typography-label text-neutral-500 px-3 mb-2">Sections</p>
-            <nav className="flex flex-col gap-0.5" aria-label="Resume sections">
+            <nav className="flex flex-row md:flex-col gap-0.5 overflow-x-auto md:overflow-x-visible" aria-label="Resume sections">
               {SECTIONS.map((section) => {
                 const status = getSectionStatus(section.id);
                 const isActive = activeSection === section.id;
@@ -727,15 +698,12 @@ export default function BuildPage() {
                     key={section.id}
                     onClick={() => setActiveSection(section.id)}
                     className={[
-                      "flex items-center gap-3 w-full rounded-lg px-3 py-2.5 text-left transition-colors duration-150 ease-out",
+                      "flex items-center gap-2 md:gap-3 whitespace-nowrap rounded-lg px-3 py-2.5 text-left transition-colors duration-150 ease-out",
                       isActive
                         ? "bg-accent-50 text-neutral-900"
                         : "text-neutral-600 hover:bg-neutral-100",
                     ].join(" ")}
                   >
-                    {isActive && (
-                      <span className="absolute left-0 top-1 bottom-1 w-0.5 bg-accent-600 rounded-r" />
-                    )}
                     <Icon className="h-4 w-4 shrink-0" />
                     <span className="typography-label flex-1">{section.label}</span>
                     {status === "complete" && (
@@ -752,7 +720,7 @@ export default function BuildPage() {
         </aside>
 
         <main className="flex-1 overflow-y-auto">
-          <div className="content-container max-w-3xl py-12">
+          <div className="content-container max-w-3xl py-8 sm:py-12">
             <h1 className="typography-heading-xl text-neutral-900 mb-8">
               {SECTIONS.find((s) => s.id === activeSection)?.label}
             </h1>

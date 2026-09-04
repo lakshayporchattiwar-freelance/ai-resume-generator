@@ -27,9 +27,9 @@ const variantClasses: Record<ButtonVariant, string> = {
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "h-8 px-3 text-[13px]",
-  md: "h-10 px-4 text-[13px]",
-  lg: "h-11 px-6 text-[13px]",
+  sm: "h-9 px-3 text-[13px]",
+  md: "h-11 px-4 text-[13px]",
+  lg: "h-12 px-6 text-[13px]",
 };
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(

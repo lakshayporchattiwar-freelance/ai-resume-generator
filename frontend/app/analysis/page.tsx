@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, CheckCircle2, XCircle, ArrowRight, LogOut } from "lucide-react";
+import { AlertCircle, CheckCircle2, XCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { useAnalysisStore } from "@/stores/useAnalysisStore";
 import { useResumeStore } from "@/stores/useResumeStore";
 import { useJobDescriptionStore } from "@/stores/useJobDescriptionStore";
-import { useAuth } from "@/lib/auth";
+import { Header } from "@/components/layout/Header";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { apiClient } from "@/lib/api-client";
 import { getScoreColor } from "@/lib/utils/helpers";
@@ -66,15 +66,15 @@ function SubScoreBar({ label, score }: { label: string; score: number }) {
   const textColor = score >= 75 ? "text-success-600" : score >= 50 ? "text-warning-600" : "text-error-600";
 
   return (
-    <div className="flex items-center gap-4">
-      <span className="typography-body-md text-neutral-600 w-44 shrink-0">{label}</span>
-      <div className="flex-1 h-2 rounded-full bg-neutral-200">
+    <div className="flex items-center gap-3 sm:gap-4">
+      <span className="typography-body-md text-neutral-600 w-28 sm:w-44 shrink-0">{label}</span>
+      <div className="flex-1 h-2 rounded-full bg-neutral-200 min-w-0">
         <div
           className={`h-2 rounded-full ${color} transition-all duration-500 ease-out`}
           style={{ width: `${score}%` }}
         />
       </div>
-      <span className={`typography-label ${textColor} w-10 text-right`}>{score}</span>
+      <span className={`typography-label ${textColor} w-10 text-right shrink-0`}>{score}</span>
     </div>
   );
 }
@@ -118,8 +118,6 @@ export default function AnalysisPage() {
   const setError = useAnalysisStore((s) => s.setError);
   const resume = useResumeStore((s) => s.resume);
   const jdAnalysis = useJobDescriptionStore((s) => s.analysis);
-  const { user, signOut } = useAuth();
-  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
   const router = useRouter();
 
   async function handleScore() {
@@ -143,25 +141,9 @@ export default function AnalysisPage() {
 
   return (
     <RequireAuth>
-      <header className="w-full border-b border-neutral-200 bg-neutral-0">
-        <div className="content-container flex h-14 items-center justify-between">
-          <Link href="/" className="typography-heading-md text-neutral-900">ResumeForge</Link>
-          <nav className="flex items-center gap-6">
-            <Link href="/dashboard" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">Dashboard</Link>
-            <Link href="/build" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">Build</Link>
-            <Link href="/job-description" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">Job Description</Link>
-            <Link href="/preview" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">Preview</Link>
-            <div className="flex items-center gap-3 pl-4 border-l border-neutral-200">
-              <span className="typography-label text-neutral-600">{displayName}</span>
-              <Button variant="ghost" size="sm" onClick={signOut}>
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
-      <main className="content-container py-16">
+      <main className="content-container py-8 sm:py-16">
         <div className="max-w-3xl mx-auto">
           <h1 className="typography-heading-xl text-neutral-900 mb-2">ATS Score</h1>
           <p className="typography-body-lg text-neutral-500 mb-8">
@@ -201,9 +183,9 @@ export default function AnalysisPage() {
           {scoreResult && (
             <div className="flex flex-col gap-8">
               <Card>
-                <div className="flex items-start gap-8">
+                <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-8">
                   <ScoreRing score={scoreResult.overall_score} />
-                  <div className="flex-1 flex flex-col gap-4 pt-2">
+                  <div className="flex-1 flex flex-col gap-4 pt-2 w-full">
                     <div>
                       <h2 className="typography-heading-lg text-neutral-900 mb-1">Overall Score</h2>
                       <p className="typography-body-md text-neutral-500">
@@ -246,7 +228,7 @@ export default function AnalysisPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <Link href="/build">
                   <Button variant="secondary">Edit Resume</Button>
                 </Link>

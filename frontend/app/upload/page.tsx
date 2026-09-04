@@ -2,10 +2,10 @@
 
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, FileText, AlertCircle, CheckCircle2, LogOut } from "lucide-react";
+import { Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useResumeStore } from "@/stores/useResumeStore";
-import { useAuth } from "@/lib/auth";
+import { Header } from "@/components/layout/Header";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 import { apiClient } from "@/lib/api-client";
 import Link from "next/link";
@@ -30,8 +30,6 @@ export default function UploadPage() {
   const [dragOver, setDragOver] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const loadParsedResume = useResumeStore((s) => s.loadParsedResume);
-  const { user, signOut } = useAuth();
-  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "User";
   const router = useRouter();
 
   const validateFile = (f: File): string | null => {
@@ -89,24 +87,9 @@ export default function UploadPage() {
 
   return (
     <RequireAuth>
-      <header className="w-full border-b border-neutral-200 bg-neutral-0">
-        <div className="content-container flex h-14 items-center justify-between">
-          <Link href="/" className="typography-heading-md text-neutral-900">ResumeForge</Link>
-          <nav className="flex items-center gap-6">
-            <Link href="/dashboard" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">Dashboard</Link>
-            <Link href="/build" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">Build</Link>
-            <Link href="/job-description" className="typography-label text-neutral-600 hover:text-neutral-900 transition-colors duration-150">Job Description</Link>
-            <div className="flex items-center gap-3 pl-4 border-l border-neutral-200">
-              <span className="typography-label text-neutral-600">{displayName}</span>
-              <Button variant="ghost" size="sm" onClick={signOut}>
-                <LogOut className="h-4 w-4" />
-              </Button>
-            </div>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
-      <main className="content-container py-16">
+      <main className="content-container py-8 sm:py-16">
         <div className="max-w-xl mx-auto">
           <h1 className="typography-heading-xl text-neutral-900 mb-2">Upload Resume</h1>
           <p className="typography-body-lg text-neutral-500 mb-8">
@@ -118,7 +101,7 @@ export default function UploadPage() {
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
             className={[
-              "rounded-xl border-2 border-dashed p-12 flex flex-col items-center justify-center gap-4 transition-colors duration-150",
+              "rounded-xl border-2 border-dashed p-8 sm:p-12 flex flex-col items-center justify-center gap-4 transition-colors duration-150",
               dragOver ? "border-accent-600 bg-accent-50" : "border-neutral-300 bg-neutral-0 hover:border-neutral-400",
             ].join(" ")}
           >
@@ -151,17 +134,17 @@ export default function UploadPage() {
 
           {file && (
             <div className="mt-6 flex items-center justify-between rounded-lg border border-neutral-200 bg-neutral-0 px-4 py-3">
-              <div className="flex items-center gap-3">
-                <FileText className="h-5 w-5 text-neutral-500" />
-                <div>
-                  <p className="typography-body-lg text-neutral-900">{file.name}</p>
+              <div className="flex items-center gap-3 min-w-0">
+                <FileText className="h-5 w-5 text-neutral-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="typography-body-lg text-neutral-900 truncate">{file.name}</p>
                   <p className="typography-caption text-neutral-500">{(file.size / 1024).toFixed(1)} KB</p>
                 </div>
               </div>
               {stage === "done" ? (
-                <CheckCircle2 className="h-5 w-5 text-success-600" />
+                <CheckCircle2 className="h-5 w-5 text-success-600 shrink-0" />
               ) : (
-                <button onClick={() => { setFile(null); setStage("idle"); }} className="text-neutral-400 hover:text-neutral-700 transition-colors duration-150">
+                <button onClick={() => { setFile(null); setStage("idle"); }} className="text-neutral-400 hover:text-neutral-700 transition-colors duration-150 shrink-0">
                   Remove
                 </button>
               )}
@@ -182,7 +165,7 @@ export default function UploadPage() {
             </div>
           )}
 
-          <div className="mt-8 flex items-center gap-4">
+          <div className="mt-8 flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <Button
               onClick={handleParse}
               disabled={!file || stage === "reading" || stage === "identifying" || stage === "structuring" || stage === "done"}

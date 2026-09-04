@@ -39,7 +39,7 @@ function Modal({ open, onClose, title, children }: ModalProps) {
         aria-hidden="true"
       />
       <div
-        className="relative z-10 w-full max-w-lg rounded-xl border border-neutral-200 bg-neutral-0 p-6 elevation-2"
+        className="relative z-10 w-[calc(100%-2rem)] max-w-lg rounded-xl border border-neutral-200 bg-neutral-0 p-6 elevation-2"
         role="dialog"
         aria-modal="true"
         aria-label={title}
