@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     GROQ_MODEL_NAME: str = "llama-3.3-70b-versatile"
-    BACKEND_CORS_ORIGINS: str = "http://localhost:3000,https://ai-resume-generator-iota-gules.vercel.app"
+    BACKEND_CORS_ORIGINS: str = "http://localhost:3000"
     MAX_UPLOAD_SIZE_MB: int = 10
     AI_REQUEST_TIMEOUT_SECONDS: int = 60
     AI_MAX_RETRIES: int = 2
@@ -23,7 +23,11 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins_list(self) -> List[str]:
-        return [origin.strip() for origin in self.BACKEND_CORS_ORIGINS.split(",") if origin.strip()]
+        origins = [origin.strip() for origin in self.BACKEND_CORS_ORIGINS.split(",") if origin.strip()]
+        required = "https://ai-resume-generator-iota-gules.vercel.app"
+        if required not in origins:
+            origins.append(required)
+        return origins
 
     @property
     def max_upload_size_bytes(self) -> int:
