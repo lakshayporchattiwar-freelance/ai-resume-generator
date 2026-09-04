@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     GROQ_MODEL_NAME: str = "llama-3.3-70b-versatile"
-    BACKEND_CORS_ORIGINS: str = "http://localhost:3000"
+    BACKEND_CORS_ORIGINS: str = "http://localhost:3000,https://ai-resume-generator-iota-gules.vercel.app"
     MAX_UPLOAD_SIZE_MB: int = 10
     AI_REQUEST_TIMEOUT_SECONDS: int = 60
     AI_MAX_RETRIES: int = 2
