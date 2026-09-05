@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, CheckCircle2, XCircle, ArrowRight } from "lucide-react";
+import { AlertCircle, CheckCircle2, XCircle, ArrowRight, Sparkles, TrendingUp, ArrowUpRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
@@ -14,15 +14,15 @@ import { RequireAuth } from "@/components/auth/RequireAuth";
 import { apiClient } from "@/lib/api-client";
 import { getScoreColor } from "@/lib/utils/helpers";
 import Link from "next/link";
-import type { SubScores, Recommendation } from "@/types/analysis";
+import type { SubScores, Recommendation, FixItem, TransformResult, ATSScoreResult } from "@/types/analysis";
 
-function ScoreRing({ score }: { score: number }) {
+function ScoreRing({ score, size = 128 }: { score: number; size?: number }) {
   const [displayScore, setDisplayScore] = useState(0);
-  const radius = 52;
+  const radius = size === 128 ? 52 : 40;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (displayScore / 100) * circumference;
-  const colorClass = score >= 75 ? "text-success-600" : score >= 50 ? "text-warning-600" : "text-error-600";
   const strokeColor = score >= 75 ? "#16A34A" : score >= 50 ? "#D97706" : "#DC2626";
+  const colorClass = score >= 75 ? "text-success-600" : score >= 50 ? "text-warning-600" : "text-error-600";
 
   useEffect(() => {
     let start = 0;
@@ -40,21 +40,21 @@ function ScoreRing({ score }: { score: number }) {
 
   return (
     <div className="relative inline-flex items-center justify-center">
-      <svg width="128" height="128" viewBox="0 0 128 128">
-        <circle cx="64" cy="64" r={radius} fill="none" stroke="#E4E4E7" strokeWidth="8" />
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="#E4E4E7" strokeWidth="8" />
         <circle
-          cx="64" cy="64" r={radius} fill="none"
+          cx={size/2} cy={size/2} r={radius} fill="none"
           stroke={strokeColor}
           strokeWidth="8"
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
-          transform="rotate(-90 64 64)"
+          transform={`rotate(-90 ${size/2} ${size/2})`}
           className="transition-all duration-500 ease-out"
         />
       </svg>
       <div className="absolute flex flex-col items-center">
-        <span className={`typography-heading-xl ${colorClass}`}>{displayScore}</span>
+        <span className={`typography-heading-xl ${colorClass}`} style={{ fontSize: size === 128 ? undefined : "20px" }}>{displayScore}</span>
         <span className="typography-caption text-neutral-500">of 100</span>
       </div>
     </div>
@@ -108,6 +108,29 @@ function KeywordList({ title, keywords, variant }: { title: string; keywords: st
   );
 }
 
+function FixRow({ fix }: { fix: FixItem }) {
+  return (
+    <div className="py-4 border-b border-neutral-200 last:border-0">
+      <div className="flex items-center gap-2 mb-2">
+        <Badge variant="info">{fix.section.replace(/_/g, " ")}</Badge>
+      </div>
+      {fix.original && (
+        <div className="mb-2 rounded-lg bg-error-50 border border-error-200 px-3 py-2">
+          <p className="typography-caption text-error-600 mb-1">Before:</p>
+          <p className="typography-body-md text-error-800 line-through">{fix.original}</p>
+        </div>
+      )}
+      {fix.fixed && (
+        <div className="mb-2 rounded-lg bg-success-50 border border-success-200 px-3 py-2">
+          <p className="typography-caption text-success-600 mb-1">After:</p>
+          <p className="typography-body-md text-success-800">{fix.fixed}</p>
+        </div>
+      )}
+      <p className="typography-caption text-neutral-500 italic">{fix.reason}</p>
+    </div>
+  );
+}
+
 export default function AnalysisPage() {
   const scoreResult = useAnalysisStore((s) => s.scoreResult);
   const isLoading = useAnalysisStore((s) => s.isLoading);
@@ -117,8 +140,13 @@ export default function AnalysisPage() {
   const setLoading = useAnalysisStore((s) => s.setLoading);
   const setError = useAnalysisStore((s) => s.setError);
   const resume = useResumeStore((s) => s.resume);
+  const loadParsedResume = useResumeStore((s) => s.loadParsedResume);
   const jdAnalysis = useJobDescriptionStore((s) => s.analysis);
   const router = useRouter();
+
+  const [transforming, setTransforming] = useState(false);
+  const [transformError, setTransformError] = useState<string | null>(null);
+  const [transformResult, setTransformResult] = useState<TransformResult | null>(null);
 
   async function handleScore() {
     if (!jdAnalysis) {
@@ -137,6 +165,31 @@ export default function AnalysisPage() {
     }
   }
 
+  async function handleTransform() {
+    if (!jdAnalysis) {
+      router.push("/job-description");
+      return;
+    }
+    setTransforming(true);
+    setTransformError(null);
+    try {
+      const result = await apiClient.transformResume(resume, jdAnalysis);
+      setTransformResult(result);
+    } catch (err: unknown) {
+      const errorObj = err as { error?: { message?: string } };
+      const message = errorObj?.error?.message || (err instanceof Error ? err.message : "AI transformation failed. Please try again.");
+      setTransformError(message);
+    } finally {
+      setTransforming(false);
+    }
+  }
+
+  function handleApplyTransform() {
+    if (!transformResult?.transformed_resume) return;
+    loadParsedResume(transformResult.transformed_resume);
+    router.push("/preview");
+  }
+
   const hasJd = jdAnalysis !== null;
 
   return (
@@ -144,10 +197,10 @@ export default function AnalysisPage() {
       <Header />
 
       <main className="content-container py-8 sm:py-16">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="typography-heading-xl text-neutral-900 mb-2">ATS Score</h1>
+        <div className="max-w-4xl mx-auto">
+          <h1 className="typography-heading-xl text-neutral-900 mb-2">ATS Score & AI Transform</h1>
           <p className="typography-body-lg text-neutral-500 mb-8">
-            Analyze your resume against the job description to find compatibility.
+            Analyze your resume, then let AI completely rewrite it to perfectly match the job.
           </p>
 
           {!hasJd && (
@@ -164,9 +217,7 @@ export default function AnalysisPage() {
           {hasJd && !scoreResult && (
             <Card className="text-center py-12">
               <p className="typography-body-lg text-neutral-600 mb-4">
-                {isStale && scoreResult
-                  ? "Your resume has changed. Re-analyze to get an updated score."
-                  : "Analyze your resume against the job description."}
+                Analyze your resume against the job description.
               </p>
               <Button onClick={handleScore} loading={isLoading}>
                 Analyze My Resume
@@ -180,14 +231,14 @@ export default function AnalysisPage() {
             </Card>
           )}
 
-          {scoreResult && (
+          {scoreResult && !transformResult && (
             <div className="flex flex-col gap-8">
               <Card>
                 <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-8">
                   <ScoreRing score={scoreResult.overall_score} />
                   <div className="flex-1 flex flex-col gap-4 pt-2 w-full">
                     <div>
-                      <h2 className="typography-heading-lg text-neutral-900 mb-1">Overall Score</h2>
+                      <h2 className="typography-heading-lg text-neutral-900 mb-1">Current Score</h2>
                       <p className="typography-body-md text-neutral-500">
                         {scoreResult.overall_score >= 75
                           ? "Your resume is well-aligned with this job."
@@ -215,22 +266,44 @@ export default function AnalysisPage() {
                 </div>
               </div>
 
-              <div>
-                <h2 className="typography-heading-lg text-neutral-900 mb-4">Recommendations</h2>
-                <div className="rounded-xl border border-neutral-200 bg-neutral-0 divide-y divide-neutral-200">
-                  {scoreResult.recommendations.length === 0 ? (
-                    <p className="typography-body-md text-neutral-500 p-6">No recommendations. Your resume looks good.</p>
-                  ) : (
-                    scoreResult.recommendations.map((rec, i) => (
+              {scoreResult.recommendations.length > 0 && (
+                <div>
+                  <h2 className="typography-heading-lg text-neutral-900 mb-4">Recommendations</h2>
+                  <div className="rounded-xl border border-neutral-200 bg-neutral-0 divide-y divide-neutral-200">
+                    {scoreResult.recommendations.map((rec, i) => (
                       <RecommendationRow key={i} rec={rec} />
-                    ))
-                  )}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              <Card className="border-accent-200 bg-accent-50/30">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="h-6 w-6 text-accent-600" />
+                    <div>
+                      <h2 className="typography-heading-md text-neutral-900">AI Resume Transform</h2>
+                      <p className="typography-body-md text-neutral-600 mt-1">
+                        Let AI completely rewrite your resume to perfectly match this job. See before/after scores and every fix the AI made.
+                      </p>
+                    </div>
+                  </div>
+                  <Button variant="ai" onClick={handleTransform} loading={transforming} className="shrink-0">
+                    <Sparkles className="h-4 w-4" />
+                    Transform My Resume
+                  </Button>
+                </div>
+                {transformError && (
+                  <div className="mt-4 flex items-center gap-2 text-error-600">
+                    <AlertCircle className="h-4 w-4" />
+                    <p className="typography-body-md">{transformError}</p>
+                  </div>
+                )}
+              </Card>
 
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <Link href="/build">
-                  <Button variant="secondary">Edit Resume</Button>
+                  <Button variant="secondary">Edit Resume Manually</Button>
                 </Link>
                 {isStale && (
                   <Button variant="ghost" onClick={handleScore} loading={isLoading}>
@@ -238,6 +311,105 @@ export default function AnalysisPage() {
                   </Button>
                 )}
               </div>
+            </div>
+          )}
+
+          {transformResult && (
+            <div className="flex flex-col gap-8">
+              <div className="flex items-center gap-3 mb-2">
+                <Sparkles className="h-6 w-6 text-accent-600" />
+                <h2 className="typography-heading-xl text-neutral-900">AI Transformation Complete</h2>
+              </div>
+
+              {transformResult.error ? (
+                <Card className="border-error-200 bg-error-50/30">
+                  <div className="flex items-center gap-2 text-error-600">
+                    <AlertCircle className="h-5 w-5" />
+                    <p className="typography-body-lg">{transformResult.error}</p>
+                  </div>
+                </Card>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card className="text-center">
+                      <p className="typography-label text-neutral-500 mb-3">BEFORE</p>
+                      <ScoreRing score={transformResult.before_score.overall_score} size={100} />
+                      <p className="typography-body-md text-neutral-600 mt-2">Original Resume</p>
+                    </Card>
+                    <Card className="text-center border-success-200">
+                      <p className="typography-label text-success-600 mb-3">AFTER</p>
+                      <ScoreRing score={transformResult.after_score?.overall_score ?? 0} size={100} />
+                      <p className="typography-body-md text-neutral-600 mt-2">AI-Transformed Resume</p>
+                    </Card>
+                  </div>
+
+                  {transformResult.score_improvement > 0 && (
+                    <Card className="bg-success-50/50 border-success-200 text-center py-6">
+                      <div className="flex items-center justify-center gap-2">
+                        <TrendingUp className="h-6 w-6 text-success-600" />
+                        <span className="typography-heading-lg text-success-700">
+                          +{transformResult.score_improvement} points improvement
+                        </span>
+                      </div>
+                      <p className="typography-body-md text-success-600 mt-1">
+                        {transformResult.before_score.overall_score} → {transformResult.after_score?.overall_score}
+                      </p>
+                      {transformResult.adaptive_insights_used && (
+                        <div className="mt-2 flex items-center justify-center gap-1">
+                          <Sparkles className="h-3.5 w-3.5 text-accent-500" />
+                          <span className="typography-caption text-accent-600">AI adapted based on patterns from previous resumes</span>
+                        </div>
+                      )}
+                    </Card>
+                  )}
+
+                  {transformResult.after_score && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <h3 className="typography-label text-neutral-500 mb-3">Before Breakdown</h3>
+                        <div className="flex flex-col gap-3">
+                          <SubScoreBar label="Keywords" score={transformResult.before_score.sub_scores.keyword_coverage} />
+                          <SubScoreBar label="Skills" score={transformResult.before_score.sub_scores.skills_alignment} />
+                          <SubScoreBar label="Experience" score={transformResult.before_score.sub_scores.experience_relevance} />
+                          <SubScoreBar label="Formatting" score={transformResult.before_score.sub_scores.formatting_compatibility} />
+                        </div>
+                      </div>
+                      <div>
+                        <h3 className="typography-label text-success-600 mb-3">After Breakdown</h3>
+                        <div className="flex flex-col gap-3">
+                          <SubScoreBar label="Keywords" score={transformResult.after_score.sub_scores.keyword_coverage} />
+                          <SubScoreBar label="Skills" score={transformResult.after_score.sub_scores.skills_alignment} />
+                          <SubScoreBar label="Experience" score={transformResult.after_score.sub_scores.experience_relevance} />
+                          <SubScoreBar label="Formatting" score={transformResult.after_score.sub_scores.formatting_compatibility} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {transformResult.fixes.length > 0 && (
+                    <div>
+                      <h2 className="typography-heading-lg text-neutral-900 mb-4">
+                        What AI Fixed ({transformResult.fixes.length} changes)
+                      </h2>
+                      <div className="rounded-xl border border-neutral-200 bg-neutral-0 px-4">
+                        {transformResult.fixes.map((fix, i) => (
+                          <FixRow key={i} fix={fix} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <Button onClick={handleApplyTransform} className="bg-success-600 hover:bg-success-700">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Apply Transformed Resume
+                    </Button>
+                    <Button variant="ghost" onClick={() => setTransformResult(null)}>
+                      Discard & Go Back
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

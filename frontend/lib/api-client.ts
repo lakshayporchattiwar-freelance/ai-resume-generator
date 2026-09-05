@@ -109,6 +109,21 @@ class ApiClient {
     });
   }
 
+  async transformResume(resume: import("@/types/resume").Resume, jdAnalysis: import("@/types/job_description").JobDescriptionAnalysis) {
+    return this.request<{
+      original_resume: Record<string, unknown>;
+      transformed_resume: import("@/types/resume").Resume | null;
+      before_score: import("@/types/analysis").ATSScoreResult;
+      after_score: import("@/types/analysis").ATSScoreResult | null;
+      fixes: import("@/types/analysis").FixItem[];
+      score_improvement: number;
+      adaptive_insights_used: boolean;
+      error?: string;
+    }>("/api/v1/ai/transform-resume", {
+      body: { resume, job_description_analysis: jdAnalysis },
+    });
+  }
+
   async getLearningInsights() {
     return this.request<{total_resumes_analyzed: number; learning_available: boolean; insights: string; top_skills: Record<string, number>; top_action_verbs: Record<string, number>; optimal_bullet_length: number; optimal_summary_length: number}>("/api/v1/ai/learning-insights", {
       method: "GET",

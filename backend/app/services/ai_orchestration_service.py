@@ -19,6 +19,8 @@ from app.prompts.generation_prompts import (
     ACHIEVEMENT_PHRASING_USER_TEMPLATE,
     TAILOR_RESUME_SYSTEM_PROMPT,
     TAILOR_RESUME_USER_TEMPLATE,
+    TRANSFORM_RESUME_SYSTEM_PROMPT,
+    TRANSFORM_RESUME_USER_TEMPLATE,
     get_jd_context_prompt,
 )
 from app.services.pattern_learning_service import pattern_learning_service
@@ -30,6 +32,8 @@ class AIOrchestrationService:
     async def generate(self, request: AIGenerationRequest) -> AIGenerationResult:
         if request.action_type == ActionType.tailor_resume:
             return await self._tailor_resume(request)
+        if request.action_type == ActionType.transform_resume:
+            return await self._transform_resume(request)
 
         template, user_prompt = self._build_prompt(request)
 
@@ -280,6 +284,58 @@ class AIOrchestrationService:
                 if attempt < settings.AI_MAX_RETRIES:
                     continue
                 raise AIProviderError("Resume tailoring failed after retries")
+
+    async def _transform_resume(self, request: AIGenerationRequest) -> AIGenerationResult:
+        jd_json = request.job_description_analysis.json() if request.job_description_analysis else None
+        jd_context = get_jd_context_prompt(jd_json)
+        learning_context = pattern_learning_service.get_learning_context()
+
+        resume_json = request.source_content or "{}"
+        user_prompt = TRANSFORM_RESUME_USER_TEMPLATE.format(
+            resume_json=resume_json[:14000],
+            jd_context=jd_context,
+            learning_context=learning_context or "No learning data available yet.",
+        )
+
+        for attempt in range(settings.AI_MAX_RETRIES + 1):
+            try:
+                response_text = await groq_client.chat_completion(
+                    system_prompt=TRANSFORM_RESUME_SYSTEM_PROMPT,
+                    user_prompt=user_prompt,
+                    response_format={"type": "json_object"},
+                    temperature=0.2,
+                    max_tokens=8000,
+                )
+
+                data = json.loads(response_text)
+
+                transformed = data.get("transformed_resume", {})
+                fixes = data.get("fixes", [])
+
+                return AIGenerationResult(
+                    generated_content=json.dumps({
+                        "transformed_resume": transformed,
+                        "fixes": fixes,
+                    }),
+                    guardrail_validated=True,
+                )
+
+            except json.JSONDecodeError as e:
+                logger.warning("transform_resume_json_parse_failed", extra={"detail": str(e)[:200]})
+                if attempt < settings.AI_MAX_RETRIES:
+                    continue
+                return AIGenerationResult(
+                    generated_content=None,
+                    guardrail_validated=False,
+                    warning_message="AI transformation returned invalid data. Please try again.",
+                )
+            except AIProviderError:
+                raise
+            except Exception as e:
+                logger.error("transform_resume_error", extra={"detail": str(e)[:200]})
+                if attempt < settings.AI_MAX_RETRIES:
+                    continue
+                raise AIProviderError("Resume transformation failed after retries")
 
 
 ai_orchestration_service = AIOrchestrationService()

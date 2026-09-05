@@ -4,7 +4,8 @@ export type ActionType =
   | "rewrite_experience_bullets"
   | "rewrite_project_description"
   | "suggest_achievement_phrasing"
-  | "tailor_resume";
+  | "tailor_resume"
+  | "transform_resume";
 
 export type RecommendationPriority = "high" | "medium" | "low";
 export type RelatedSection =
@@ -54,4 +55,22 @@ export interface AIGenerationResult {
   generated_bullets?: string[];
   guardrail_validated: boolean;
   warning_message?: string | null;
+}
+
+export interface FixItem {
+  section: string;
+  original: string;
+  fixed: string;
+  reason: string;
+}
+
+export interface TransformResult {
+  original_resume: Record<string, unknown>;
+  transformed_resume: import("./resume").Resume | null;
+  before_score: ATSScoreResult;
+  after_score: ATSScoreResult | null;
+  fixes: FixItem[];
+  score_improvement: number;
+  adaptive_insights_used: boolean;
+  error?: string;
 }

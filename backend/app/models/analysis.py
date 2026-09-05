@@ -15,6 +15,7 @@ class ActionType(str, Enum):
     rewrite_project_description = "rewrite_project_description"
     suggest_achievement_phrasing = "suggest_achievement_phrasing"
     tailor_resume = "tailor_resume"
+    transform_resume = "transform_resume"
 
 
 class RecommendationPriority(str, Enum):
@@ -71,3 +72,21 @@ class AIGenerationResult(BaseModel):
     generated_bullets: Optional[List[str]] = None
     guardrail_validated: bool = True
     warning_message: Optional[str] = None
+
+
+class FixItem(BaseModel):
+    section: str
+    original: str = ""
+    fixed: str = ""
+    reason: str
+
+
+class TransformResult(BaseModel):
+    original_resume: dict
+    transformed_resume: Optional[dict] = None
+    before_score: ATSScoreResult
+    after_score: Optional[ATSScoreResult] = None
+    fixes: List[FixItem] = Field(default_factory=list)
+    score_improvement: float = 0.0
+    adaptive_insights_used: bool = False
+    error: Optional[str] = None
