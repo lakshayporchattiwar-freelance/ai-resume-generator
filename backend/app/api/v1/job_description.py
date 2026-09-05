@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.core.exceptions import FileTooLargeError, UnsupportedFileTypeError, ParsingError
 from app.models.job_description import JobDescriptionAnalysis, JobDescriptionInput, JDSourceType
 from app.services.job_description_service import job_description_service
+from app.services.pattern_learning_service import pattern_learning_service
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +49,12 @@ async def analyze_job_description(
                 tmp.write(contents)
                 tmp_path = tmp.name
             result = await job_description_service.analyze(jd_input, contents, file.filename)
+
+            try:
+                pattern_learning_service.learn_from_jd_analysis(result)
+            except Exception as e:
+                logger.warning("jd_pattern_learning_failed", extra={"detail": str(e)[:100]})
+
             logger.info("jd_analyzed_upload", extra={"detail": f"filename={file.filename}, size={len(contents)}"})
             return result
         except (FileTooLargeError, UnsupportedFileTypeError, ParsingError):
@@ -70,6 +77,12 @@ async def analyze_job_description(
             company_name=company_name,
         )
         result = await job_description_service.analyze(jd_input)
+
+        try:
+            pattern_learning_service.learn_from_jd_analysis(result)
+        except Exception as e:
+            logger.warning("jd_pattern_learning_failed", extra={"detail": str(e)[:100]})
+
         logger.info("jd_analyzed_text", extra={"detail": f"text_len={len(text)}"})
         return result
     else:

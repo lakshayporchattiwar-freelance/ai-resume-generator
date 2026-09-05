@@ -12,6 +12,7 @@ from app.core.exceptions import FileTooLargeError, UnsupportedFileTypeError, Par
 from app.models.resume import Resume
 from app.models.responses import ParsedResumeResult, ResumeValidationResult
 from app.services.resume_parser_service import resume_parser_service
+from app.services.pattern_learning_service import pattern_learning_service
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,12 @@ async def parse_resume(file: UploadFile = File(...)):
             tmp_path = tmp.name
 
         result = await resume_parser_service.parse(contents, file.filename, file.content_type or "")
+
+        try:
+            pattern_learning_service.learn_from_resume(result.resume)
+        except Exception as e:
+            logger.warning("pattern_learning_failed", extra={"detail": str(e)[:100]})
+
         logger.info("resume_parsed", extra={"detail": f"filename={file.filename}, size={len(contents)}"})
         return result
     except (FileTooLargeError, UnsupportedFileTypeError, ParsingError):

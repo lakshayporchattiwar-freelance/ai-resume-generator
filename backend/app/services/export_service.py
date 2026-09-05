@@ -10,10 +10,10 @@ logger = logging.getLogger(__name__)
 
 
 class ExportService:
-    def generate_pdf(self, resume: Resume, template_id: str = "modern") -> bytes:
+    def generate_pdf(self, resume: Resume, template_id: str = "developer") -> bytes:
         return pdf_generator.generate(resume, template_id)
 
-    def generate_docx(self, resume: Resume, template_id: str = "modern") -> bytes:
+    def generate_docx(self, resume: Resume, template_id: str = "developer") -> bytes:
         return docx_generator.generate(resume, template_id)
 
     def get_filename(self, resume: Resume, extension: str) -> str:

@@ -10,6 +10,7 @@ from app.models.analysis import ATSScoreResult, AIGenerationRequest, AIGeneratio
 from app.models.job_description import JobDescriptionAnalysis
 from app.models.resume import Resume
 from app.services.scoring_service import scoring_service
+from app.services.pattern_learning_service import pattern_learning_service
 
 logger = logging.getLogger(__name__)
 
@@ -24,5 +25,11 @@ class ScoreRequest(BaseModel):
 @router.post("/analysis/score", response_model=ATSScoreResult)
 async def score_resume(request: ScoreRequest):
     result = await scoring_service.score(request.resume, request.job_description_analysis)
+
+    try:
+        pattern_learning_service.learn_from_ats_score(result)
+    except Exception as e:
+        logger.warning("ats_pattern_learning_failed", extra={"detail": str(e)[:100]})
+
     logger.info("ats_score_computed", extra={"detail": f"score={result.overall_score}"})
     return result

@@ -14,6 +14,7 @@ class ActionType(str, Enum):
     rewrite_experience_bullets = "rewrite_experience_bullets"
     rewrite_project_description = "rewrite_project_description"
     suggest_achievement_phrasing = "suggest_achievement_phrasing"
+    tailor_resume = "tailor_resume"
 
 
 class RecommendationPriority(str, Enum):

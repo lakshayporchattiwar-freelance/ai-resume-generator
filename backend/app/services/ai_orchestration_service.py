@@ -17,14 +17,20 @@ from app.prompts.generation_prompts import (
     EXPERIENCE_BULLETS_REWRITE_USER_TEMPLATE,
     PROJECT_DESCRIPTION_REWRITE_USER_TEMPLATE,
     ACHIEVEMENT_PHRASING_USER_TEMPLATE,
+    TAILOR_RESUME_SYSTEM_PROMPT,
+    TAILOR_RESUME_USER_TEMPLATE,
     get_jd_context_prompt,
 )
+from app.services.pattern_learning_service import pattern_learning_service
 
 logger = logging.getLogger(__name__)
 
 
 class AIOrchestrationService:
     async def generate(self, request: AIGenerationRequest) -> AIGenerationResult:
+        if request.action_type == ActionType.tailor_resume:
+            return await self._tailor_resume(request)
+
         template, user_prompt = self._build_prompt(request)
 
         for attempt in range(settings.AI_MAX_RETRIES + 1):
@@ -72,32 +78,37 @@ class AIOrchestrationService:
         jd_json = request.job_description_analysis.json() if request.job_description_analysis else None
         jd_context = get_jd_context_prompt(jd_json)
 
+        learning_context = pattern_learning_service.get_learning_context()
+        learning_block = ""
+        if learning_context:
+            learning_block = f"\n\n{learning_context}\nUse these insights to inform your writing style, phrasing, and structure choices.\n"
+
         if request.action_type == ActionType.generate_summary:
             source = request.source_content or ""
             return SUMMARY_GENERATE_USER_TEMPLATE, SUMMARY_GENERATE_USER_TEMPLATE.format(
-                source_content=source, jd_context=jd_context
+                source_content=source, jd_context=jd_context + learning_block
             )
         elif request.action_type == ActionType.rewrite_summary:
             source = request.source_content or ""
             return SUMMARY_REWRITE_USER_TEMPLATE, SUMMARY_REWRITE_USER_TEMPLATE.format(
-                source_content=source, jd_context=jd_context
+                source_content=source, jd_context=jd_context + learning_block
             )
         elif request.action_type == ActionType.rewrite_experience_bullets:
             bullets = request.source_bullets or []
             bullets_text = "\n".join(f"- {b}" for b in bullets)
             return EXPERIENCE_BULLETS_REWRITE_USER_TEMPLATE, EXPERIENCE_BULLETS_REWRITE_USER_TEMPLATE.format(
-                source_bullets=bullets_text, jd_context=jd_context
+                source_bullets=bullets_text, jd_context=jd_context + learning_block
             )
         elif request.action_type == ActionType.rewrite_project_description:
             bullets = request.source_bullets or []
             bullets_text = "\n".join(f"- {b}" for b in bullets)
             return PROJECT_DESCRIPTION_REWRITE_USER_TEMPLATE, PROJECT_DESCRIPTION_REWRITE_USER_TEMPLATE.format(
-                source_bullets=bullets_text, jd_context=jd_context
+                source_bullets=bullets_text, jd_context=jd_context + learning_block
             )
         elif request.action_type == ActionType.suggest_achievement_phrasing:
             source = request.source_content or ""
             return ACHIEVEMENT_PHRASING_USER_TEMPLATE, ACHIEVEMENT_PHRASING_USER_TEMPLATE.format(
-                source_content=source
+                source_content=source + learning_block
             )
         else:
             raise AIProviderError(f"Unknown action type: {request.action_type}")
@@ -136,10 +147,9 @@ class AIOrchestrationService:
         generated_text = result.generated_content or ""
         generated_text += " ".join(result.generated_bullets or [])
 
-        new_capitalized = re.findall(r'\b[A-Z][a-zA-Z0-9]+\b', generated_text)
-        source_lower = {e.lower() for e in source_entities}
+        source_lower = {e.lower() for e in source_entities if isinstance(e, str)}
 
-        common_words = {
+        STOPWORDS = {
             "the", "and", "for", "with", "that", "this", "from", "are", "was",
             "were", "been", "have", "has", "had", "will", "would", "could",
             "should", "may", "might", "can", "not", "but", "also", "more",
@@ -151,24 +161,46 @@ class AIOrchestrationService:
             "designed", "implemented", "created", "built", "maintained",
             "supported", "improved", "increased", "reduced", "achieved",
             "delivered", "collaborated", "coordinated", "established",
+            "January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December",
+            "Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
+            "Saturday", "Sunday",
         }
+
+        TECH_SYNONYMS = {
+            "javascript", "typescript", "python", "java", "react", "angular",
+            "vue", "node", "nodejs", "aws", "azure", "gcp", "docker", "kubernetes",
+            "k8s", "git", "github", "sql", "postgresql", "mysql", "mongodb",
+            "redis", "elasticsearch", "terraform", "jenkins", "ci", "cd",
+            "cicd", "api", "rest", "graphql", "microservices", "agile", "scrum",
+            "html", "css", "sass", "tailwind", "bootstrap", "figma", "jira",
+            "confluence", "slack", "teams", "linux", "unix", "windows", "macos",
+            "swift", "kotlin", "flutter", "django", "flask", "fastapi",
+            "spring", "express", "nextjs", "nuxt", "svelte",
+        }
+
+        new_capitalized = re.findall(r'\b[A-Z][a-zA-Z0-9]+\b', generated_text)
 
         suspicious = []
         for word in new_capitalized:
-            if word.lower() not in source_lower and word.lower() not in common_words and len(word) > 3:
-                if word.lower() not in {"the", "and", "for", "with"}:
-                    suspicious.append(word)
+            wl = word.lower()
+            if wl in source_lower or wl in STOPWORDS or wl in TECH_SYNONYMS:
+                continue
+            if len(word) <= 3:
+                continue
+            suspicious.append(word)
 
-        if len(suspicious) > 5:
+        if len(suspicious) > 10:
             logger.warning("guardrail_suspicious_entities", extra={"detail": str(suspicious[:10])})
             return False
 
-        new_numbers = re.findall(r'\b\d+\.?\d*%?\b', generated_text)
-        source_numbers = re.findall(r'\b\d+\.?\d*%?\b', request.source_content or " " + " ".join(request.source_bullets or []))
-        source_num_set = set(source_numbers)
+        source_all_text = (request.source_content or "") + " " + " ".join(request.source_bullets or [])
+        source_numbers = set(re.findall(r'\b\d+\.?\d*%?\b', source_all_text))
 
-        invented_numbers = [n for n in new_numbers if n not in source_num_set and not n.startswith("[")]
-        if len(invented_numbers) > 0:
+        new_numbers = re.findall(r'\b\d+\.?\d*%?\b', generated_text)
+        invented_numbers = [n for n in new_numbers if n not in source_numbers and not n.startswith("[")]
+
+        if len(invented_numbers) > 2:
             logger.warning("guardrail_invented_numbers", extra={"detail": str(invented_numbers[:5])})
             return False
 
@@ -180,6 +212,74 @@ class AIOrchestrationService:
             "certifications, degrees, dates, or quantified metrics that were not in the original content. "
             "Only rephrase and restructure existing information.\n\n" + user_prompt
         )
+
+    async def _tailor_resume(self, request: AIGenerationRequest) -> AIGenerationResult:
+        jd_json = request.job_description_analysis.json() if request.job_description_analysis else None
+        jd_context = get_jd_context_prompt(jd_json)
+        learning_context = pattern_learning_service.get_learning_context()
+
+        resume_json = request.source_content or "{}"
+        user_prompt = TAILOR_RESUME_USER_TEMPLATE.format(
+            resume_json=resume_json[:12000],
+            jd_context=jd_context,
+            learning_context=learning_context,
+        )
+
+        for attempt in range(settings.AI_MAX_RETRIES + 1):
+            try:
+                response_text = await groq_client.chat_completion(
+                    system_prompt=TAILOR_RESUME_SYSTEM_PROMPT,
+                    user_prompt=user_prompt,
+                    response_format={"type": "json_object"},
+                    temperature=0.2,
+                    max_tokens=6000,
+                )
+
+                data = json.loads(response_text)
+
+                tailored_resume = data.get("tailored_resume", {})
+                suggestions = data.get("tailoring_suggestions", [])
+                tips = data.get("match_improvement_tips", [])
+
+                result_parts = []
+                if tailored_resume:
+                    result_parts.append("=== TAILORED RESUME ===")
+                    result_parts.append(json.dumps(tailored_resume, indent=2))
+                if suggestions:
+                    result_parts.append("\n=== TAILORING SUGGESTIONS ===")
+                    for s in suggestions:
+                        section = s.get("section", "")
+                        suggestion = s.get("suggestion", "")
+                        missing = s.get("missing_keywords", [])
+                        result_parts.append(f"[{section}] {suggestion}")
+                        if missing:
+                            result_parts.append(f"  Missing keywords to consider adding: {', '.join(missing)}")
+                if tips:
+                    result_parts.append("\n=== IMPROVEMENT TIPS ===")
+                    for tip in tips:
+                        result_parts.append(f"- {tip}")
+
+                return AIGenerationResult(
+                    generated_content="\n".join(result_parts) if result_parts else None,
+                    guardrail_validated=True,
+                )
+
+            except json.JSONDecodeError as e:
+                logger.warning("tailor_resume_json_parse_failed", extra={"detail": str(e)[:200]})
+                if attempt < settings.AI_MAX_RETRIES:
+                    continue
+                return AIGenerationResult(
+                    generated_content=None,
+                    guardrail_validated=False,
+                    warning_message="Failed to tailor resume. The AI response was malformed. Please try again.",
+                )
+            except AIProviderError:
+                raise
+            except Exception as e:
+                logger.error("tailor_resume_error", extra={"detail": str(e)[:200]})
+                if attempt < settings.AI_MAX_RETRIES:
+                    continue
+                raise AIProviderError("Resume tailoring failed after retries")
 
 
 ai_orchestration_service = AIOrchestrationService()

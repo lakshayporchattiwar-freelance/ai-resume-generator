@@ -3,7 +3,8 @@ export type ActionType =
   | "rewrite_summary"
   | "rewrite_experience_bullets"
   | "rewrite_project_description"
-  | "suggest_achievement_phrasing";
+  | "suggest_achievement_phrasing"
+  | "tailor_resume";
 
 export type RecommendationPriority = "high" | "medium" | "low";
 export type RelatedSection =

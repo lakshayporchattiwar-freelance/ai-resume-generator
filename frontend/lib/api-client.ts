@@ -24,7 +24,7 @@ class ApiClient {
     const { method = "POST", body, isFormData = false } = options;
     const headers: Record<string, string> = {};
 
-    if (!isFormData && body) {
+    if (!isFormData && body && method !== "GET") {
       headers["Content-Type"] = "application/json";
     }
 
@@ -35,7 +35,7 @@ class ApiClient {
 
     const fetchOptions: RequestInit = { method, headers };
 
-    if (body) {
+    if (body && method !== "GET") {
       fetchOptions.body = isFormData ? (body as FormData) : JSON.stringify(body);
     }
 
@@ -100,6 +100,18 @@ class ApiClient {
   async aiGenerate(request: import("@/types/analysis").AIGenerationRequest) {
     return this.request<import("@/types/analysis").AIGenerationResult>("/api/v1/ai/generate", {
       body: request,
+    });
+  }
+
+  async aiTailorResume(request: import("@/types/analysis").AIGenerationRequest) {
+    return this.request<import("@/types/analysis").AIGenerationResult>("/api/v1/ai/tailor-resume", {
+      body: request,
+    });
+  }
+
+  async getLearningInsights() {
+    return this.request<{total_resumes_analyzed: number; learning_available: boolean; insights: string; top_skills: Record<string, number>; top_action_verbs: Record<string, number>; optimal_bullet_length: number; optimal_summary_length: number}>("/api/v1/ai/learning-insights", {
+      method: "GET",
     });
   }
 

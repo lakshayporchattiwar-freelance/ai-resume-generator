@@ -17,7 +17,13 @@ class DOCXParser:
                 if para.text.strip():
                     style_name = (para.style.name or "").lower() if para.style else ""
                     prefix = ""
-                    if "heading" in style_name:
+                    if "heading 1" in style_name:
+                        prefix = "\n# "
+                    elif "heading 2" in style_name:
+                        prefix = "\n## "
+                    elif "heading 3" in style_name:
+                        prefix = "\n### "
+                    elif "heading" in style_name:
                         prefix = "\n## "
                     elif "list" in style_name:
                         prefix = "- "
@@ -25,9 +31,16 @@ class DOCXParser:
 
             for table in doc.tables:
                 for row in table.rows:
+                    row_text = []
                     for cell in row.cells:
                         if cell.text.strip():
-                            text_parts.append(cell.text.strip())
+                            row_text.append(cell.text.strip())
+                    if row_text:
+                        text_parts.append(" | ".join(row_text))
+
+            for section in doc.sections:
+                for para in [section.header.paragraphs, section.footer.paragraphs]:
+                    pass
 
             full_text = "\n".join(text_parts)
             logger.info("docx_parsed", extra={"detail": f"Extracted {len(full_text)} chars"})

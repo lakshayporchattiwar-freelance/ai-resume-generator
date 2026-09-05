@@ -8,7 +8,7 @@ interface TemplateState {
 }
 
 export const useTemplateStore = create<TemplateState>((set) => ({
-  selectedTemplateId: "modern",
+  selectedTemplateId: "developer",
   zoom: 100,
 
   setTemplate: (templateId) => set({ selectedTemplateId: templateId }),

@@ -17,7 +17,7 @@ router = APIRouter()
 
 class ExportRequest(BaseModel):
     resume: Resume
-    template_id: str = "modern"
+    template_id: str = "developer"
 
 
 def _validate_export(resume: Resume) -> None:

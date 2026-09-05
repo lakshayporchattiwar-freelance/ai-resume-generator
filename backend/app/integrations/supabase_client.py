@@ -23,6 +23,12 @@ def get_supabase() -> Client:
 
 
 class SupabaseService:
+    def _get_client_safe(self):
+        try:
+            return get_supabase()
+        except Exception:
+            return None
+
     def save_resume(self, user_id: str, resume_data: Dict[str, Any]) -> str:
         sb = get_supabase()
         row = {
