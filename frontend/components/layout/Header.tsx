@@ -27,7 +27,7 @@ function Header() {
     <header className="w-full border-b border-neutral-200 bg-neutral-0">
       <div className="content-container flex h-14 items-center justify-between">
         <Link href="/" className="typography-heading-md text-neutral-900">
-          ResumeForge
+          Pasrsume
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">

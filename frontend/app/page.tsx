@@ -39,7 +39,7 @@ export default function LandingPage() {
       <header className="w-full border-b border-neutral-200 bg-neutral-0">
         <div className="content-container flex h-14 items-center justify-between">
           <Link href="/" className="flex items-center gap-2 text-neutral-900">
-            <span className="typography-heading-md">ResumeForge</span>
+            <span className="typography-heading-md">Pasrsume</span>
           </Link>
           <nav className="flex items-center gap-4 sm:gap-6">
             {user ? (
@@ -142,7 +142,7 @@ export default function LandingPage() {
       <footer className="border-t border-neutral-200 bg-neutral-50">
         <div className="content-container py-8 sm:py-12">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <span className="typography-body-md text-neutral-500">ResumeForge</span>
+            <span className="typography-body-md text-neutral-500">Pasrsume</span>
             <div className="flex flex-wrap items-center gap-4 sm:gap-6">
               <Link href={user ? "/dashboard" : "/login"} className="typography-body-md text-neutral-500 hover:text-neutral-700 transition-colors duration-150">
                 Dashboard

@@ -4,7 +4,7 @@ import { AuthProvider } from "@/lib/auth";
 import { ErrorBoundary } from "@/components/auth/ErrorBoundary";
 
 export const metadata: Metadata = {
-  title: "ResumeForge — AI Resume Builder & ATS Optimizer",
+  title: "Pasrsume — AI Resume Builder & ATS Optimizer",
   description: "Create, refine, and tailor resumes against job descriptions using AI. Get ATS-compatible scores and export professional resumes.",
 };
 
