@@ -69,7 +69,7 @@ function LoginForm() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 mb-6">
             <Sparkles className="h-8 w-8 text-accent-600" />
-            <span className="typography-display text-neutral-900">Pasrsume</span>
+            <span className="typography-display text-neutral-900">Parsume</span>
           </Link>
           <h1 className="typography-heading-xl text-neutral-900 mb-2">
             {mode === "login" ? "Welcome back" : "Create account"}

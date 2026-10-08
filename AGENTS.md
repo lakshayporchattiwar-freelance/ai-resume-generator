@@ -1,4 +1,4 @@
-# Pasrsume — Quick Context Reference
+# Parsume — Quick Context Reference
 
 > **Read this file first.** It contains everything needed to work on this project without reading the source code. Updated 5 Sep 2026.
 
@@ -6,7 +6,7 @@
 
 ## Project Identity
 
-- **Name**: Pasrsume / AI Resume Generator & ATS Optimizer
+- **Name**: Parsume / AI Resume Generator & ATS Optimizer
 - **Type**: College project, solo developer
 - **Repo**: `D:\college project` (monorepo: `frontend/` + `backend/`)
 - **Live Frontend**: https://ai-resume-generator-iota-gules.vercel.app
