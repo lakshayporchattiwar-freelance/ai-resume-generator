@@ -4,11 +4,13 @@ import os
 from typing import List
 
 from pydantic_settings import BaseSettings
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 
 class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
-    GROQ_MODEL_NAME: str = "groq/compound-mini"
+    GROQ_MODEL_NAME: str = "openai/gpt-oss-120b"
     BACKEND_CORS_ORIGINS: str = "http://localhost:3000"
     MAX_UPLOAD_SIZE_MB: int = 10
     AI_REQUEST_TIMEOUT_SECONDS: int = 60
@@ -25,6 +27,7 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> List[str]:
         origins = [origin.strip() for origin in self.BACKEND_CORS_ORIGINS.split(",") if origin.strip()]
         required = "https://ai-resume-generator-iota-gules.vercel.app"
+        # TODO: replace with new Vercel URL after rebrand to Parsume
         if required not in origins:
             origins.append(required)
         return origins
@@ -37,3 +40,6 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+limiter = Limiter(key_func=get_remote_address, default_limits=[f"{settings.RATE_LIMIT_PER_MINUTE}/minute"])

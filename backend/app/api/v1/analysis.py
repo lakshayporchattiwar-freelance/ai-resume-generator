@@ -3,9 +3,11 @@
 import logging
 from typing import Optional
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
+from app.core.auth import AuthUser, require_auth
+from app.core.config import limiter
 from app.models.analysis import ATSScoreResult, AIGenerationRequest, AIGenerationResult
 from app.models.job_description import JobDescriptionAnalysis
 from app.models.resume import Resume
@@ -23,8 +25,9 @@ class ScoreRequest(BaseModel):
 
 
 @router.post("/analysis/score", response_model=ATSScoreResult)
-async def score_resume(request: ScoreRequest):
-    result = await scoring_service.score(request.resume, request.job_description_analysis)
+@limiter.limit("20/minute")
+async def score_resume(request: Request, body: ScoreRequest, _: AuthUser = Depends(require_auth)):
+    result = await scoring_service.score(body.resume, body.job_description_analysis)
 
     try:
         pattern_learning_service.learn_from_ats_score(result)

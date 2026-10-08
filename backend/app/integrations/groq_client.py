@@ -14,9 +14,8 @@ from app.core.exceptions import AIProviderError, AITimeoutError
 logger = logging.getLogger(__name__)
 
 MODEL_FALLBACK_CHAIN = [
-    "groq/compound-mini",
-    "llama-3.3-70b-versatile",
-    "llama-3.1-8b-instant",
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
 ]
 
 
@@ -56,11 +55,15 @@ class GroqClient:
             except AIProviderError as e:
                 last_error = e
                 error_str = str(e)
-                if "404" in error_str or "model" in error_str.lower():
+                if "404" in error_str or "model" in error_str.lower() or "not found" in error_str.lower():
                     logger.warning("groq_model_fallback", extra={"detail": f"Model {model} failed, trying next"})
                     continue
-                if "429" in error_str:
+                if "429" in error_str or "rate limit" in error_str.lower():
                     logger.warning("groq_rate_limited", extra={"detail": f"Model {model} rate limited, trying next"})
+                    continue
+                # Retry same model on transient server errors before moving on
+                if "5" in error_str[:3] and error_str.startswith("AI provider server error: 5"):
+                    logger.warning("groq_server_error_retry", extra={"detail": f"Model {model} server error"})
                     continue
                 raise
 

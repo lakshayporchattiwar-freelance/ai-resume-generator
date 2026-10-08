@@ -4,9 +4,10 @@ import json
 import logging
 from typing import Any, Dict, List
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
+from app.core.auth import AuthUser, require_auth
 from app.core.exceptions import ValidationError
 from app.models.analysis import AIGenerationRequest, AIGenerationResult, FixItem
 from app.models.job_description import JobDescriptionAnalysis
@@ -14,6 +15,7 @@ from app.models.resume import Resume
 from app.services.ai_orchestration_service import ai_orchestration_service
 from app.services.pattern_learning_service import pattern_learning_service
 from app.services.scoring_service import scoring_service
+from app.core.config import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -21,17 +23,19 @@ router = APIRouter()
 
 
 @router.post("/ai/generate", response_model=AIGenerationResult)
-async def ai_generate(request: AIGenerationRequest):
-    result = await ai_orchestration_service.generate(request)
-    logger.info("ai_generated", extra={"detail": f"action={request.action_type}, validated={result.guardrail_validated}"})
+@limiter.limit("10/minute")
+async def ai_generate(request: Request, body: AIGenerationRequest, _: AuthUser = Depends(require_auth)):
+    result = await ai_orchestration_service.generate(body)
+    logger.info("ai_generated", extra={"detail": f"action={body.action_type}, validated={result.guardrail_validated}"})
     return result
 
 
 @router.post("/ai/tailor-resume", response_model=AIGenerationResult)
-async def ai_tailor_resume(request: AIGenerationRequest):
-    if request.action_type != "tailor_resume":
+@limiter.limit("10/minute")
+async def ai_tailor_resume(request: Request, body: AIGenerationRequest, _: AuthUser = Depends(require_auth)):
+    if body.action_type != "tailor_resume":
         raise ValidationError("This endpoint only supports tailor_resume action type")
-    result = await ai_orchestration_service.generate(request)
+    result = await ai_orchestration_service.generate(body)
     logger.info("resume_tailored", extra={"detail": f"validated={result.guardrail_validated}"})
     return result
 
@@ -42,8 +46,9 @@ class TransformResumeRequest(BaseModel):
 
 
 @router.post("/ai/transform-resume")
-async def ai_transform_resume(request: TransformResumeRequest):
-    before_score = await scoring_service.score(request.resume, request.job_description_analysis)
+@limiter.limit("10/minute")
+async def ai_transform_resume(request: Request, body: TransformResumeRequest, _: AuthUser = Depends(require_auth)):
+    before_score = await scoring_service.score(body.resume, body.job_description_analysis)
 
     try:
         pattern_learning_service.learn_from_ats_score(before_score)
@@ -56,7 +61,7 @@ async def ai_transform_resume(request: TransformResumeRequest):
     ai_result = await ai_orchestration_service.generate(AIGenerationRequest(
         action_type="transform_resume",
         source_content=resume_json,
-        job_description_analysis=request.job_description_analysis,
+        job_description_analysis=body.job_description_analysis,
     ))
 
     if not ai_result.generated_content:
@@ -90,7 +95,7 @@ async def ai_transform_resume(request: TransformResumeRequest):
     if transformed_resume_dict:
         try:
             transformed_resume = Resume(**transformed_resume_dict)
-            after_score = await scoring_service.score(transformed_resume, request.job_description_analysis)
+            after_score = await scoring_service.score(transformed_resume, body.job_description_analysis)
             score_improvement = round(after_score.overall_score - before_score.overall_score, 1)
 
             try:

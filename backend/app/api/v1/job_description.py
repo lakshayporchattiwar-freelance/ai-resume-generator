@@ -5,9 +5,11 @@ import os
 import tempfile
 import uuid
 
-from fastapi import APIRouter, File, Form, UploadFile, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from typing import Optional
 
+from app.core.auth import AuthUser, require_auth
+from app.core.config import limiter
 from app.core.config import settings
 from app.core.exceptions import FileTooLargeError, UnsupportedFileTypeError, ParsingError
 from app.models.job_description import JobDescriptionAnalysis, JobDescriptionInput, JDSourceType
@@ -22,7 +24,10 @@ ALLOWED_JD_EXTENSIONS = {".pdf", ".docx", ".txt"}
 
 
 @router.post("/job-description/analyze", response_model=JobDescriptionAnalysis)
+@limiter.limit("15/minute")
 async def analyze_job_description(
+    request: Request,
+    _: AuthUser = Depends(require_auth),
     text: Optional[str] = Form(None),
     job_title: Optional[str] = Form(None),
     company_name: Optional[str] = Form(None),

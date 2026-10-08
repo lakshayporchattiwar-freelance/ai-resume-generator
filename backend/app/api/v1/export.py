@@ -3,10 +3,12 @@
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
 
+from app.core.auth import AuthUser, require_auth
+from app.core.config import limiter
 from app.models.resume import Resume
 from app.services.export_service import export_service
 
@@ -39,11 +41,12 @@ def _validate_export(resume: Resume) -> None:
 
 
 @router.post("/export/pdf")
-async def export_pdf(request: ExportRequest):
-    _validate_export(request.resume)
+@limiter.limit("20/minute")
+async def export_pdf(request: Request, body: ExportRequest, _: AuthUser = Depends(require_auth)):
+    _validate_export(body.resume)
     try:
-        pdf_bytes = export_service.generate_pdf(request.resume, request.template_id)
-        filename = export_service.get_filename(request.resume, "pdf")
+        pdf_bytes = export_service.generate_pdf(body.resume, body.template_id)
+        filename = export_service.get_filename(body.resume, "pdf")
         logger.info("pdf_exported", extra={"detail": f"filename={filename}, size={len(pdf_bytes)}"})
         return Response(
             content=pdf_bytes,
@@ -56,11 +59,12 @@ async def export_pdf(request: ExportRequest):
 
 
 @router.post("/export/docx")
-async def export_docx(request: ExportRequest):
-    _validate_export(request.resume)
+@limiter.limit("20/minute")
+async def export_docx(request: Request, body: ExportRequest, _: AuthUser = Depends(require_auth)):
+    _validate_export(body.resume)
     try:
-        docx_bytes = export_service.generate_docx(request.resume, request.template_id)
-        filename = export_service.get_filename(request.resume, "docx")
+        docx_bytes = export_service.generate_docx(body.resume, body.template_id)
+        filename = export_service.get_filename(body.resume, "docx")
         logger.info("docx_exported", extra={"detail": f"filename={filename}, size={len(docx_bytes)}"})
         return Response(
             content=docx_bytes,

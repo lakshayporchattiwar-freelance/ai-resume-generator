@@ -48,8 +48,11 @@ class ApiClient {
       } catch {
         errorData = { error: { code: "UNKNOWN_ERROR", message: `HTTP ${response.status}` } };
       }
-      const errMsg = errorData?.error?.message || errorData?.message || `HTTP ${response.status}`;
-      throw { error: { code: errorData?.error?.code || "API_ERROR", message: errMsg } };
+      let errMsg = errorData?.error?.message || errorData?.message || `HTTP ${response.status}`;
+      if (response.status === 401) errMsg = "Your session has expired. Please sign in again.";
+      if (response.status === 429) errMsg = "Too many requests. Please wait a moment and try again.";
+      if (response.status >= 500) errMsg = "Server error. Please try again in a moment.";
+      throw { error: { code: errorData?.error?.code || "API_ERROR", message: errMsg, status: response.status } };
     }
 
     const contentType = response.headers.get("content-type") || "";
